@@ -41,11 +41,13 @@ class Task {
 class TaskCard extends StatefulWidget {
   final Task task;
   final VoidCallback onToggle;
+  final RoutineAnimationSettings? animationSettings;
 
   const TaskCard({
     super.key,
     required this.task,
     required this.onToggle,
+    this.animationSettings,
   });
 
   @override
@@ -56,12 +58,13 @@ class _TaskCardState extends State<TaskCard> with SingleTickerProviderStateMixin
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _slideAnimation;
+  bool _hasAnimated = false;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 300),
+      duration: widget.animationSettings?.duration ?? const Duration(milliseconds: 300),
       vsync: this,
     );
 
@@ -72,6 +75,13 @@ class _TaskCardState extends State<TaskCard> with SingleTickerProviderStateMixin
     _slideAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
+
+    // Start the animation only once when the widget is first created
+    if (!_hasAnimated) {
+      _controller.forward().then((_) {
+        _hasAnimated = true;
+      });
+    }
   }
 
   @override
@@ -92,28 +102,101 @@ class _TaskCardState extends State<TaskCard> with SingleTickerProviderStateMixin
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
+        Widget taskWidget = Card(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          child: InkWell(
+            onTap: _handleTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Checkbox(
+                    value: widget.task.isDone,
+                    onChanged: (bool? value) => _handleTap(),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      widget.task.text,
+                      style: TextStyle(
+                        decoration: widget.task.isDone ? TextDecoration.lineThrough : null,
+                        color: widget.task.isDone ? Colors.grey : null,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                  if (!widget.task.isDone) ReorderableDragStartListener(
+                    index: -1, // This will be set by the parent
+                    child: const Icon(Icons.drag_handle),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        if (widget.animationSettings != null) {
+          switch (widget.animationSettings!.type) {
+            case RoutineAnimation.slide:
+              taskWidget = SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(1.0, 0.0),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(
+                  parent: _controller,
+                  curve: widget.animationSettings!.curve,
+                )),
+                child: taskWidget,
+              );
+              break;
+            case RoutineAnimation.fade:
+              taskWidget = FadeTransition(
+                opacity: Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(
+                  parent: _controller,
+                  curve: widget.animationSettings!.curve,
+                )),
+                child: taskWidget,
+              );
+              break;
+            case RoutineAnimation.scale:
+              taskWidget = ScaleTransition(
+                scale: Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(
+                  parent: _controller,
+                  curve: widget.animationSettings!.curve,
+                )),
+                child: taskWidget,
+              );
+              break;
+            case RoutineAnimation.bounce:
+              taskWidget = SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.0, 1.0),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(
+                  parent: _controller,
+                  curve: Curves.bounceOut,
+                )),
+                child: taskWidget,
+              );
+              break;
+            case RoutineAnimation.rotate:
+              taskWidget = RotationTransition(
+                turns: Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(
+                  parent: _controller,
+                  curve: widget.animationSettings!.curve,
+                )),
+                child: taskWidget,
+              );
+              break;
+          }
+        }
+
         return Transform.scale(
           scale: _scaleAnimation.value,
           child: AnimatedSlide(
             offset: Offset(0, _slideAnimation.value),
             duration: const Duration(milliseconds: 300),
-            child: Card(
-              margin: const EdgeInsets.symmetric(vertical: 4),
-              child: ListTile(
-                leading: Checkbox(
-                  value: widget.task.isDone,
-                  onChanged: (bool? value) => _handleTap(),
-                ),
-                title: Text(
-                  widget.task.text,
-                  style: TextStyle(
-                    decoration: widget.task.isDone ? TextDecoration.lineThrough : null,
-                    color: widget.task.isDone ? Colors.grey : null,
-                    fontSize: 18,
-                  ),
-                ),
-              ),
-            ),
+            child: taskWidget,
           ),
         );
       },
@@ -237,7 +320,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.emoji_emotions_outlined),
                   onPressed: () {
-                    setState(() {
+    setState(() {
                       _showEmojiPicker = !_showEmojiPicker;
                     });
                   },
@@ -341,7 +424,7 @@ class RoutineAnimationSettings {
   });
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final List<ColumnData> columns = [
     ColumnData(
       id: 'assaf',
@@ -486,54 +569,39 @@ class _HomeScreenState extends State<HomeScreen> {
   void _toggleTask(String columnId, int index) {
     setState(() {
       final column = columns.firstWhere((col) => col.id == columnId);
-      column.tasks[index].isDone = !column.tasks[index].isDone;
-      final task = column.tasks.removeAt(index);
+      final task = column.tasks[index];
+      task.isDone = !task.isDone;
       
-      if (task.isDone) {
-        column.tasks.add(task);
-        column.listKey.currentState?.removeItem(
-          index,
-          (context, animation) => SlideTransition(
-            position: animation.drive(
-              Tween<Offset>(
-                begin: const Offset(1.0, 0.0),
-                end: Offset.zero,
-              ).chain(CurveTween(curve: Curves.easeOut)),
-            ),
-            child: FadeTransition(
-              opacity: animation,
-              child: TaskCard(
-                task: task,
-                onToggle: () => _toggleTask(columnId, column.tasks.length - 1),
-              ),
+      // Remove the task from its current position
+      column.tasks.removeAt(index);
+      
+      // Find the new position based on completion status
+      final firstMarkedIndex = column.tasks.indexWhere((t) => t.isDone);
+      final insertIndex = firstMarkedIndex == -1 ? column.tasks.length : firstMarkedIndex;
+      
+      // Insert the task at the new position
+      column.tasks.insert(insertIndex, task);
+      
+      // Update the list state with proper animation
+      column.listKey.currentState?.removeItem(
+        index,
+        (context, animation) => SlideTransition(
+          position: animation.drive(
+            Tween<Offset>(
+              begin: const Offset(1.0, 0.0),
+              end: Offset.zero,
+            ).chain(CurveTween(curve: Curves.easeOut)),
+          ),
+          child: FadeTransition(
+            opacity: animation,
+            child: TaskCard(
+              task: task,
+              onToggle: () => _toggleTask(columnId, insertIndex),
             ),
           ),
-        );
-        column.listKey.currentState?.insertItem(column.tasks.length - 1);
-      } else {
-        final firstMarkedIndex = column.tasks.indexWhere((t) => t.isDone);
-        final insertIndex = firstMarkedIndex == -1 ? column.tasks.length : firstMarkedIndex;
-        column.tasks.insert(insertIndex, task);
-        column.listKey.currentState?.removeItem(
-          index,
-          (context, animation) => SlideTransition(
-            position: animation.drive(
-              Tween<Offset>(
-                begin: const Offset(1.0, 0.0),
-                end: Offset.zero,
-              ).chain(CurveTween(curve: Curves.easeOut)),
-            ),
-            child: FadeTransition(
-              opacity: animation,
-              child: TaskCard(
-                task: task,
-                onToggle: () => _toggleTask(columnId, insertIndex),
-              ),
-            ),
-          ),
-        );
-        column.listKey.currentState?.insertItem(insertIndex);
-      }
+        ),
+      );
+      column.listKey.currentState?.insertItem(insertIndex);
     });
   }
 
@@ -923,72 +991,38 @@ class _HomeScreenState extends State<HomeScreen> {
       type: RoutineAnimation.slide,
     );
 
-    return StatefulBuilder(
-      builder: (context, setState) {
-        final animationController = AnimationController(
-          duration: animation.duration,
-          vsync: Scaffold.of(context),
-        );
-
-        final curvedAnimation = CurvedAnimation(
-          parent: animationController,
-          curve: animation.curve,
-        );
-
-        animationController.forward();
-
-        switch (animation.type) {
-          case RoutineAnimation.slide:
-            return SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(1.0, 0.0),
-                end: Offset.zero,
-              ).animate(curvedAnimation),
-              child: TaskCard(
-                task: task,
-                onToggle: () => _toggleTask(columnId, index),
+    return Card(
+      key: ValueKey(task),
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: InkWell(
+        onTap: () => _toggleTask(columnId, index),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Checkbox(
+                value: task.isDone,
+                onChanged: (bool? value) => _toggleTask(columnId, index),
               ),
-            );
-          case RoutineAnimation.fade:
-            return FadeTransition(
-              opacity: Tween<double>(begin: 0.0, end: 1.0).animate(curvedAnimation),
-              child: TaskCard(
-                task: task,
-                onToggle: () => _toggleTask(columnId, index),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  task.text,
+                  style: TextStyle(
+                    decoration: task.isDone ? TextDecoration.lineThrough : null,
+                    color: task.isDone ? Colors.grey : null,
+                    fontSize: 18,
+                  ),
+                ),
               ),
-            );
-          case RoutineAnimation.scale:
-            return ScaleTransition(
-              scale: Tween<double>(begin: 0.0, end: 1.0).animate(curvedAnimation),
-              child: TaskCard(
-                task: task,
-                onToggle: () => _toggleTask(columnId, index),
+              if (!_isChildMode) ReorderableDragStartListener(
+                index: index,
+                child: const Icon(Icons.drag_handle),
               ),
-            );
-          case RoutineAnimation.bounce:
-            return SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0.0, 1.0),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(
-                parent: animationController,
-                curve: Curves.bounceOut,
-              )),
-              child: TaskCard(
-                task: task,
-                onToggle: () => _toggleTask(columnId, index),
-              ),
-            );
-          case RoutineAnimation.rotate:
-            return RotationTransition(
-              turns: Tween<double>(begin: 0.0, end: 1.0).animate(curvedAnimation),
-              child: TaskCard(
-                task: task,
-                onToggle: () => _toggleTask(columnId, index),
-              ),
-            );
-        }
-      },
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -998,7 +1032,7 @@ class _HomeScreenState extends State<HomeScreen> {
       duration: const Duration(milliseconds: 500),
       data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
       child: Scaffold(
-        appBar: AppBar(
+      appBar: AppBar(
           leading: Builder(
             builder: (context) => IconButton(
               icon: const Icon(Icons.menu),
@@ -1023,7 +1057,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         drawer: _isChildMode ? null : Drawer(
-          child: Column(
+        child: Column(
             children: [
               DrawerHeader(
                 decoration: BoxDecoration(
@@ -1088,9 +1122,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               IconButton(
                                 icon: const Icon(Icons.delete_outline, color: Colors.red),
                                 onPressed: () => _deleteRoutine(name),
-                              ),
-                          ],
-                        ),
+            ),
+          ],
+        ),
                         onTap: () {
                           Navigator.pop(context);
                           _loadRoutine(name);
