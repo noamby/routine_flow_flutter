@@ -57,5 +57,8 @@
   "updatingInterface": "מעדכן ממשק...",
   "editRoutine": "ערוך שגרה",
   "routineUpdated": "השגרה עודכנה בהצלחה",
-  "defaultRoutineNameCannotBeChanged": "שם שגרת ברירת המחדל לא ניתן לשינוי"
+  "defaultRoutineNameCannotBeChanged": "שם שגרת ברירת המחדל לא ניתן לשינוי",
+  "lightMode": "מצב בהיר",
+  "darkMode": "מצב כהה",
+  "toggleTheme": "החלף ערכת נושא"
 } 

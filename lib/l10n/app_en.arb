@@ -57,5 +57,8 @@
   "updatingInterface": "Updating interface...",
   "editRoutine": "Edit Routine",
   "routineUpdated": "Routine updated successfully",
-  "defaultRoutineNameCannotBeChanged": "Default routine name cannot be changed"
+  "defaultRoutineNameCannotBeChanged": "Default routine name cannot be changed",
+  "lightMode": "Light Mode",
+  "darkMode": "Dark Mode",
+  "toggleTheme": "Toggle Theme"
 } 

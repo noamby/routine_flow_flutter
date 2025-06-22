@@ -9,6 +9,7 @@ import '../widgets/routine_drawer.dart';
 import '../widgets/task_column.dart';
 import '../widgets/animation_picker_dialog.dart';
 import '../widgets/add_task_dialog.dart';
+import '../widgets/light_switch_widget.dart';
 import '../services/routine_service.dart';
 import 'add_routine_screen.dart';
 import 'edit_routine_screen.dart';
@@ -383,6 +384,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     });
   }
 
+  void _toggleDarkMode(bool isDark) {
+    setState(() {
+      _isDarkMode = isDark;
+    });
+  }
+
   void _toggleChildMode() {
     final l10n = AppLocalizations.of(context)!;
     if (_isChildMode) {
@@ -546,6 +553,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               icon: const Icon(Icons.view_column),
               onPressed: _showManageColumnsDialog,
               tooltip: l10n.manageColumns,
+            ),
+            // Dark mode toggle
+            IconButton(
+              icon: LightSwitchWidget(
+                isDarkMode: _isDarkMode,
+                onToggle: _toggleDarkMode,
+              ),
+              onPressed: () => _toggleDarkMode(!_isDarkMode),
+              tooltip: _isDarkMode ? l10n.lightMode : l10n.darkMode,
             ),
             IconButton(
               icon: Icon(
