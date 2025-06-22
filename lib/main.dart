@@ -1203,7 +1203,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 onPressed: () => _showColorPicker(column.id),
                                 padding: const EdgeInsets.all(8),
                               ),
-                              IconButton(
+                              if (!_isChildMode) IconButton(
                                 icon: const Icon(Icons.add_circle_outline),
                                 onPressed: () => _addTask(column.id),
                                 padding: const EdgeInsets.all(8),
