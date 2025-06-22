@@ -5,10 +5,13 @@ import '../models/column_data.dart';
 import '../widgets/add_task_dialog.dart';
 import '../widgets/task_card.dart';
 import '../utils/routine_animation.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'add_routine_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final Function(Locale) onLocaleChange;
+  
+  const HomeScreen({super.key, required this.onLocaleChange});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -34,22 +37,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   String _currentRoutine = 'Morning Routine';
 
-  final Map<String, List<Task>> routines = {
-    'Morning Routine': [
-      Task(text: '🌅 Wake up'),
-      Task(text: '🦷 Brush teeth'),
-      Task(text: '👕 Get dressed'),
-      Task(text: '🍳 Eat breakfast'),
-      Task(text: '🎒 Pack bag'),
-    ],
-    'Evening Routine': [
-      Task(text: '🛁 Take a bath'),
-      Task(text: '🦷 Brush teeth'),
-      Task(text: '📚 Read a book'),
-      Task(text: '😴 Go to sleep'),
-    ],
-  };
-
+  late Map<String, List<Task>> routines;
   final Map<String, IconData> routineIcons = {
     'Morning Routine': Icons.wb_sunny,
     'Evening Routine': Icons.nightlight,
@@ -71,24 +59,87 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isDarkMode = false;
   bool _isChildMode = false;
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _initializeRoutines();
+  }
+
+  void _initializeRoutines() {
+    final l10n = AppLocalizations.of(context)!;
+    routines = {
+      'Morning Routine': [
+        Task(text: l10n.wakeUp),
+        Task(text: l10n.brushTeeth),
+        Task(text: l10n.getDressed),
+        Task(text: l10n.eatBreakfast),
+        Task(text: l10n.packBag),
+      ],
+      'Evening Routine': [
+        Task(text: l10n.takeABath),
+        Task(text: l10n.brushTeeth),
+        Task(text: l10n.readABook),
+        Task(text: l10n.goToSleep),
+      ],
+    };
+  }
+
+  void _showLanguageDialog() {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.language),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(l10n.english),
+              leading: const Icon(Icons.language),
+              onTap: () {
+                widget.onLocaleChange(const Locale('en'));
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              title: Text(l10n.hebrew),
+              leading: const Icon(Icons.language),
+              onTap: () {
+                widget.onLocaleChange(const Locale('he'));
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.close),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _addNewColumn() {
+    final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Add New Column'),
+        title: Text(l10n.addNewColumn),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'Enter child name',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            hintText: l10n.enterChildName,
+            border: const OutlineInputBorder(),
           ),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -106,7 +157,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 Navigator.pop(context);
               }
             },
-            child: const Text('Add'),
+            child: Text(l10n.add),
           ),
         ],
       ),
@@ -197,11 +248,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _showColorPicker(String columnId) {
+    final l10n = AppLocalizations.of(context)!;
     final column = columns.firstWhere((col) => col.id == columnId);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Pick a color'),
+        title: Text(l10n.pickColor),
         content: SingleChildScrollView(
           child: ColorPicker(
             pickerColor: column.color,
@@ -215,7 +267,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Done'),
+            child: Text(l10n.done),
           ),
         ],
       ),
@@ -223,25 +275,26 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _showEditColumnNameDialog(String columnId) {
+    final l10n = AppLocalizations.of(context)!;
     final column = columns.firstWhere((col) => col.id == columnId);
     final controller = TextEditingController(text: column.name);
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Edit Column Name'),
+        title: Text(l10n.editName),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'Enter column name',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            hintText: l10n.enterColumnName,
+            border: const OutlineInputBorder(),
           ),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -252,7 +305,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 Navigator.pop(context);
               }
             },
-            child: const Text('Save'),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -362,10 +415,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _showManageColumnsDialog() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Manage Columns'),
+        title: Text(l10n.manageColumns),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -403,6 +457,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         Navigator.pop(context);
                         _showEditColumnNameDialog(column.id);
                       },
+                      tooltip: l10n.editNameTooltip,
                     ),
                   ],
                 ),
@@ -413,7 +468,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: Text(l10n.close),
           ),
           ElevatedButton.icon(
             onPressed: () {
@@ -421,7 +476,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               _addNewColumn();
             },
             icon: const Icon(Icons.add),
-            label: const Text('Add Column'),
+            label: Text(l10n.addNewColumn),
           ),
         ],
       ),
@@ -453,6 +508,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _toggleChildMode() {
+    final l10n = AppLocalizations.of(context)!;
     if (_isChildMode) {
       // Generate a random number between 1 and 10
       final random = DateTime.now().millisecondsSinceEpoch % 10 + 1;
@@ -465,18 +521,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         context: context,
         barrierDismissible: false,
         builder: (context) => AlertDialog(
-          title: const Text('Exit Child Mode'),
+          title: Text(l10n.exitChildMode),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Please enter the number ${numberWords[random]}'),
+              Text(l10n.pleaseEnterNumber(numberWords[random]!)),
               const SizedBox(height: 16),
               TextField(
                 keyboardType: TextInputType.number,
                 autofocus: true,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Enter number',
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  hintText: l10n.enterNumber,
                 ),
                 onSubmitted: (value) {
                   if (int.tryParse(value) == random) {
@@ -486,8 +542,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     });
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Incorrect number. Please try again.'),
+                      SnackBar(
+                        content: Text(l10n.incorrectNumber),
                         backgroundColor: Colors.red,
                       ),
                     );
@@ -499,7 +555,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
           ],
         ),
@@ -512,14 +568,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _showAnimationPicker(String routineName) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Select Animation'),
+        title: Text(l10n.selectAnimation),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: RoutineAnimation.values.map((type) {
             final currentSettings = routineAnimations[routineName];
+            String description;
+            switch (type) {
+              case RoutineAnimation.slide:
+                description = l10n.tasksSlideInFromRight;
+                break;
+              case RoutineAnimation.fade:
+                description = l10n.tasksFadeInSmoothly;
+                break;
+              case RoutineAnimation.scale:
+                description = l10n.tasksScaleUpFromNothing;
+                break;
+              case RoutineAnimation.bounce:
+                description = l10n.tasksBounceInFromBottom;
+                break;
+              case RoutineAnimation.rotate:
+                description = l10n.tasksRotateIn;
+                break;
+            }
             return ListTile(
               leading: Radio<RoutineAnimation>(
                 value: type,
@@ -536,14 +611,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 },
               ),
               title: Text(type.name.toUpperCase()),
-              subtitle: Text(getAnimationDescription(type)),
+              subtitle: Text(description),
             );
           }).toList(),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Close'),
+            child: Text(l10n.close),
           ),
         ],
       ),
@@ -592,8 +667,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  String _getLocalizedRoutineName(String routineName) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (routineName) {
+      case 'Morning Routine':
+        return l10n.morningRoutine;
+      case 'Evening Routine':
+        return l10n.eveningRoutine;
+      default:
+        return routineName;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final isRTL = Directionality.of(context) == TextDirection.rtl;
+    
     return AnimatedTheme(
       duration: const Duration(milliseconds: 500),
       data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
@@ -605,12 +695,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               onPressed: () => Scaffold.of(context).openDrawer(),
             ),
           ),
-          title: const Text('Routine Flow'),
+          title: Text(l10n.appTitle),
           actions: [
+            IconButton(
+              icon: const Icon(Icons.language),
+              onPressed: _showLanguageDialog,
+              tooltip: l10n.language,
+            ),
             if (!_isChildMode) IconButton(
               icon: const Icon(Icons.view_column),
               onPressed: _showManageColumnsDialog,
-              tooltip: 'Manage Columns',
+              tooltip: l10n.manageColumns,
             ),
             IconButton(
               icon: Icon(
@@ -618,7 +713,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 color: _isChildMode ? Colors.orange : null,
               ),
               onPressed: _toggleChildMode,
-              tooltip: _isChildMode ? 'Exit Child Mode' : 'Enter Child Mode',
+              tooltip: _isChildMode ? l10n.exitChildMode : l10n.enterChildMode,
             ),
           ],
         ),
@@ -629,10 +724,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 decoration: BoxDecoration(
                   color: Theme.of(context).primaryColor,
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'Routines',
-                    style: TextStyle(
+                    l10n.routines,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -650,7 +745,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         leading: Icon(routineIcons[name] ?? Icons.schedule),
                         title: Row(
                           children: [
-                            Expanded(child: Text(name)),
+                            Expanded(child: Text(_getLocalizedRoutineName(name))),
                             IconButton(
                               icon: const Icon(Icons.animation, size: 20),
                               onPressed: () => _showAnimationPicker(name),
@@ -671,7 +766,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     const Divider(),
                     ListTile(
                       leading: const Icon(Icons.add_circle_outline),
-                      title: const Text('Add New Routine'),
+                      title: Text(l10n.addNewRoutine),
                       onTap: () {
                         Navigator.pop(context);
                         _addNewRoutine();
@@ -679,7 +774,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                     ListTile(
                       leading: const Icon(Icons.delete_forever, color: Colors.red),
-                      title: const Text('Clear All Tasks', style: TextStyle(color: Colors.red)),
+                      title: Text(l10n.clearAllTasks, style: const TextStyle(color: Colors.red)),
                       onTap: () {
                         Navigator.pop(context);
                         _clearAllTasks();
@@ -739,11 +834,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 icon: const Icon(Icons.color_lens_outlined),
                                 onPressed: () => _showColorPicker(column.id),
                                 padding: const EdgeInsets.all(8),
+                                tooltip: l10n.changeColorTooltip,
                               ),
                               if (!_isChildMode) IconButton(
                                 icon: const Icon(Icons.add_circle_outline),
                                 onPressed: () => _addTask(column.id),
                                 padding: const EdgeInsets.all(8),
+                                tooltip: l10n.addTaskTooltip,
                               ),
                             ],
                           ),

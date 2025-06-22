@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class AddTaskDialog extends StatefulWidget {
   final Function(String) onAdd;
@@ -83,8 +84,10 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return AlertDialog(
-      title: const Text('Add New Task'),
+      title: Text(l10n.addNewTask),
       content: SizedBox(
         width: double.maxFinite,
         child: Column(
@@ -112,7 +115,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
             TextField(
               controller: _textController,
               decoration: InputDecoration(
-                hintText: 'Enter task text',
+                hintText: l10n.enterTaskText,
                 border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.emoji_emotions_outlined),
@@ -146,9 +149,9 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                   iconColorSelected: Theme.of(context).primaryColor,
                   iconColor: Colors.grey,
                   backspaceColor: Theme.of(context).primaryColor,
-                  noRecents: const Text(
-                    'No Recent Emojis',
-                    style: TextStyle(fontSize: 20),
+                  noRecents: Text(
+                    l10n.noRecentEmojis,
+                    style: const TextStyle(fontSize: 20),
                   ),
                   tabIndicatorAnimDuration: kTabScrollDuration,
                   categoryIcons: const CategoryIcons(),
@@ -163,7 +166,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         ElevatedButton(
           onPressed: () {
@@ -171,7 +174,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
               widget.onAdd(_textController.text);
             }
           },
-          child: const Text('Add'),
+          child: Text(l10n.add),
         ),
       ],
     );

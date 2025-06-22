@@ -3,6 +3,7 @@ import '../models/task.dart';
 import '../widgets/add_task_dialog.dart';
 import '../widgets/task_card.dart';
 import '../utils/routine_animation.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class AddRoutineScreen extends StatefulWidget {
   final Function(String, List<Task>, IconData, RoutineAnimationSettings) onAdd;
@@ -43,13 +44,32 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
   ];
 
   void _showAnimationPicker() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Select Animation'),
+        title: Text(l10n.selectAnimation),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: RoutineAnimation.values.map((type) {
+            String description;
+            switch (type) {
+              case RoutineAnimation.slide:
+                description = l10n.tasksSlideInFromRight;
+                break;
+              case RoutineAnimation.fade:
+                description = l10n.tasksFadeInSmoothly;
+                break;
+              case RoutineAnimation.scale:
+                description = l10n.tasksScaleUpFromNothing;
+                break;
+              case RoutineAnimation.bounce:
+                description = l10n.tasksBounceInFromBottom;
+                break;
+              case RoutineAnimation.rotate:
+                description = l10n.tasksRotateIn;
+                break;
+            }
             return ListTile(
               leading: Radio<RoutineAnimation>(
                 value: type,
@@ -66,14 +86,14 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
                 },
               ),
               title: Text(type.name.toUpperCase()),
-              subtitle: Text(getAnimationDescription(type)),
+              subtitle: Text(description),
             );
           }).toList(),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Close'),
+            child: Text(l10n.close),
           ),
         ],
       ),
@@ -81,10 +101,11 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
   }
 
   void _showIconPicker() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Select Icon'),
+        title: Text(l10n.selectIcon),
         content: SizedBox(
           width: double.maxFinite,
           child: GridView.builder(
@@ -168,9 +189,11 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add New Routine'),
+        title: Text(l10n.addNewRoutine),
       ),
       body: Column(
         children: [
@@ -181,9 +204,9 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
                 Expanded(
                   child: TextField(
                     controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Routine Name',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.routineName,
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                 ),
@@ -249,7 +272,7 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
                 ElevatedButton.icon(
                   onPressed: _addTask,
                   icon: const Icon(Icons.add),
-                  label: const Text('Add Task'),
+                  label: Text(l10n.addTask),
                 ),
                 ElevatedButton.icon(
                   onPressed: () {
@@ -259,7 +282,7 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
                     }
                   },
                   icon: const Icon(Icons.save),
-                  label: const Text('Save Routine'),
+                  label: Text(l10n.saveRoutine),
                 ),
               ],
             ),
