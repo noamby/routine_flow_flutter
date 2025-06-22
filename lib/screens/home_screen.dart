@@ -35,25 +35,43 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isChildMode = false;
   bool _isLoadingRoutine = false;
 
+  bool _isInitialized = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _initializeData();
+    if (!_isInitialized) {
+      _initializeData();
+      _isInitialized = true;
+    } else {
+      _updateLocalization();
+    }
   }
 
   void _initializeData() {
     final l10n = AppLocalizations.of(context)!;
     columns = RoutineService.initializeColumns(_columnNames, l10n);
-    routines = RoutineService.initializeRoutines(l10n);
+    routines = RoutineService.initializeRoutines(l10n, null);
     routineIcons = RoutineService.getDefaultIcons();
     routineAnimations = RoutineService.getDefaultAnimations();
+  }
+
+  void _updateLocalization() {
+    final l10n = AppLocalizations.of(context)!;
+    setState(() {
+      // Update column names with new localization but preserve existing data
+      RoutineService.updateColumnNamesWithLocalization(columns, _columnNames, l10n);
+      // Update routines with new localization but preserve custom routines
+      routines = RoutineService.initializeRoutines(l10n, routines);
+    });
   }
 
   // Method to easily update the column names - call this to change the default columns
   void updateColumnNames(List<String> newNames) {
     setState(() {
       _columnNames = newNames;
-      _initializeData();
+      final l10n = AppLocalizations.of(context)!;
+      columns = RoutineService.initializeColumns(_columnNames, l10n);
     });
   }
 

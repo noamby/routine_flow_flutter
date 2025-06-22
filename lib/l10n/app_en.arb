@@ -52,5 +52,7 @@
   "addTaskTooltip": "Add a new task",
   "editColorTooltip": "Edit column color",
   "editNameTooltip": "Edit column name",
-  "tasksSuffix": "'s Tasks"
+  "tasksSuffix": "'s Tasks",
+  "languageChanged": "Language changed successfully",
+  "updatingInterface": "Updating interface..."
 } 

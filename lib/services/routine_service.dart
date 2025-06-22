@@ -33,7 +33,7 @@ class RoutineService {
     }).toList();
   }
 
-  static Map<String, List<Task>> initializeRoutines(AppLocalizations l10n) {
+  static Map<String, List<Task>> getDefaultRoutines(AppLocalizations l10n) {
     return {
       'Morning Routine': [
         Task(text: l10n.wakeUp),
@@ -49,6 +49,42 @@ class RoutineService {
         Task(text: l10n.goToSleep),
       ],
     };
+  }
+
+  static Map<String, List<Task>> initializeRoutines(
+    AppLocalizations l10n, 
+    Map<String, List<Task>>? existingCustomRoutines
+  ) {
+    final defaultRoutines = getDefaultRoutines(l10n);
+    
+    if (existingCustomRoutines != null) {
+      // Preserve custom routines and update default ones with new language
+      final result = <String, List<Task>>{};
+      
+      // Add updated default routines
+      result.addAll(defaultRoutines);
+      
+      // Add back custom routines (non-default ones)
+      final customRoutineCount = existingCustomRoutines.length - defaultRoutines.length;
+      existingCustomRoutines.forEach((name, tasks) {
+        if (!defaultRoutines.containsKey(name)) {
+          result[name] = tasks; // Keep custom routines as-is
+        }
+      });
+      
+      // Debug: Print routine preservation info
+      if (customRoutineCount > 0) {
+        print('RoutineService: Preserved $customRoutineCount custom routines during language change');
+      }
+      
+      return result;
+    }
+    
+    return defaultRoutines;
+  }
+
+  static bool isDefaultRoutine(String routineName) {
+    return routineName == 'Morning Routine' || routineName == 'Evening Routine';
   }
 
   static Map<String, RoutineAnimationSettings> getDefaultAnimations() {
@@ -95,6 +131,18 @@ class RoutineService {
         return l10n.eveningRoutine;
       default:
         return routineName;
+    }
+  }
+
+  static void updateColumnNamesWithLocalization(
+    List<ColumnData> columns,
+    List<String> columnNames,
+    AppLocalizations l10n
+  ) {
+    for (int i = 0; i < columns.length && i < columnNames.length; i++) {
+      // Only update the suffix, preserve the base name
+      final baseName = columnNames[i];
+      columns[i].name = baseName + l10n.tasksSuffix;
     }
   }
 } 

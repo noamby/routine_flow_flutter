@@ -14,25 +14,30 @@ class LanguageDialog extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     
     return AlertDialog(
-      title: Text(l10n.language),
+      title: Row(
+        children: [
+          const Icon(Icons.language, color: Colors.blue),
+          const SizedBox(width: 8),
+          Text(l10n.language),
+        ],
+      ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ListTile(
-            title: Text(l10n.english),
-            leading: const Icon(Icons.language),
-            onTap: () {
-              onLocaleChange(const Locale('en'));
-              Navigator.pop(context);
-            },
+          _buildLanguageOption(
+            context: context,
+            flag: '🇺🇸',
+            title: l10n.english,
+            subtitle: 'English',
+            locale: const Locale('en'),
           ),
-          ListTile(
-            title: Text(l10n.hebrew),
-            leading: const Icon(Icons.language),
-            onTap: () {
-              onLocaleChange(const Locale('he'));
-              Navigator.pop(context);
-            },
+          const SizedBox(height: 8),
+          _buildLanguageOption(
+            context: context,
+            flag: '🇮🇱',
+            title: l10n.hebrew,
+            subtitle: 'עברית',
+            locale: const Locale('he'),
           ),
         ],
       ),
@@ -42,6 +47,47 @@ class LanguageDialog extends StatelessWidget {
           child: Text(l10n.close),
         ),
       ],
+    );
+  }
+
+  Widget _buildLanguageOption({
+    required BuildContext context,
+    required String flag,
+    required String title,
+    required String subtitle,
+    required Locale locale,
+  }) {
+    return Card(
+      elevation: 2,
+      child: ListTile(
+        leading: Text(
+          flag,
+          style: const TextStyle(fontSize: 24),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        onTap: () {
+          onLocaleChange(locale);
+          Navigator.pop(context);
+          
+          // Show feedback to user
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                locale.languageCode == 'en' 
+                  ? 'Language changed successfully'
+                  : 'השפה שונתה בהצלחה',
+              ),
+              duration: const Duration(seconds: 2),
+              backgroundColor: Colors.green,
+            ),
+          );
+        },
+      ),
     );
   }
 } 

@@ -52,5 +52,7 @@
   "addTaskTooltip": "הוסף משימה חדשה",
   "editColorTooltip": "ערוך צבע עמודה",
   "editNameTooltip": "ערוך שם עמודה",
-  "tasksSuffix": " - משימות"
+  "tasksSuffix": " - משימות",
+  "languageChanged": "השפה שונתה בהצלחה",
+  "updatingInterface": "מעדכן ממשק..."
 } 
