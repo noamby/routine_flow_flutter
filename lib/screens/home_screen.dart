@@ -594,9 +594,200 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Text('Home Screen - Under Construction'),
+    return AnimatedTheme(
+      duration: const Duration(milliseconds: 500),
+      data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
+      child: Scaffold(
+        appBar: AppBar(
+          leading: Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
+          ),
+          title: const Text('Routine Flow'),
+          actions: [
+            if (!_isChildMode) IconButton(
+              icon: const Icon(Icons.view_column),
+              onPressed: _showManageColumnsDialog,
+              tooltip: 'Manage Columns',
+            ),
+            IconButton(
+              icon: Icon(
+                _isChildMode ? Icons.child_care : Icons.child_care_outlined,
+                color: _isChildMode ? Colors.orange : null,
+              ),
+              onPressed: _toggleChildMode,
+              tooltip: _isChildMode ? 'Exit Child Mode' : 'Enter Child Mode',
+            ),
+          ],
+        ),
+        drawer: _isChildMode ? null : Drawer(
+          child: Column(
+            children: [
+              DrawerHeader(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor,
+                ),
+                child: const Center(
+                  child: Text(
+                    'Routines',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    ...routines.keys.map((name) {
+                      final isCustomRoutine = !['Morning Routine', 'Evening Routine'].contains(name);
+                      return ListTile(
+                        leading: Icon(routineIcons[name] ?? Icons.schedule),
+                        title: Row(
+                          children: [
+                            Expanded(child: Text(name)),
+                            IconButton(
+                              icon: const Icon(Icons.animation, size: 20),
+                              onPressed: () => _showAnimationPicker(name),
+                            ),
+                            if (isCustomRoutine)
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                onPressed: () => _deleteRoutine(name),
+                              ),
+                          ],
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _loadRoutine(name);
+                        },
+                      );
+                    }).toList(),
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.add_circle_outline),
+                      title: const Text('Add New Routine'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _addNewRoutine();
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.delete_forever, color: Colors.red),
+                      title: const Text('Clear All Tasks', style: TextStyle(color: Colors.red)),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _clearAllTasks();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        body: Row(
+          children: columns.map((column) => Expanded(
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  color: column.color.withOpacity(_isDarkMode ? 0.3 : 1.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: _isChildMode ? Text(
+                              column.name,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ) : GestureDetector(
+                              onTap: () => _showEditColumnNameDialog(column.id),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      column.name,
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.edit, size: 20),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Wrap(
+                            spacing: 4,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.color_lens_outlined),
+                                onPressed: () => _showColorPicker(column.id),
+                                padding: const EdgeInsets.all(8),
+                              ),
+                              if (!_isChildMode) IconButton(
+                                icon: const Icon(Icons.add_circle_outline),
+                                onPressed: () => _addTask(column.id),
+                                padding: const EdgeInsets.all(8),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ReorderableListView.builder(
+                    key: column.listKey,
+                    padding: const EdgeInsets.all(8),
+                    itemCount: column.tasks.length,
+                    onReorder: (oldIndex, newIndex) {
+                      if (!_isChildMode) {
+                        setState(() {
+                          if (oldIndex < newIndex) {
+                            newIndex -= 1;
+                          }
+                          final task = column.tasks.removeAt(oldIndex);
+                          column.tasks.insert(newIndex, task);
+                        });
+                      }
+                    },
+                    itemBuilder: (context, index) {
+                      return Dismissible(
+                        key: ValueKey(column.tasks[index]),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20),
+                          color: Colors.red,
+                          child: const Icon(Icons.delete, color: Colors.white),
+                        ),
+                        onDismissed: _isChildMode ? null : (direction) => _removeTask(column.id, index),
+                        child: _buildAnimatedTask(column.tasks[index], index, column.id, _currentRoutine),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          )).toList(),
+        ),
       ),
     );
   }
