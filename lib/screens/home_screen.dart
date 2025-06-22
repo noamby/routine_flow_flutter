@@ -32,6 +32,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // Configurable list of household member names - you can modify this list as needed
   late List<String> _memberNames;
   
+  // Global key for scaffold to access drawer
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  
   late List<ColumnData> columns;
   String _currentRoutine = 'Morning Routine';
   late Map<String, List<Task>> routines;
@@ -204,39 +207,81 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _toggleTask(String columnId, int index) {
+    final column = columns.firstWhere((col) => col.id == columnId);
+    final task = column.tasks[index];
+    
+    // Toggle the task status
+    task.isDone = !task.isDone;
+    
+    // Find the new position based on completion status
+    final newIndex = _findNewTaskPosition(column.tasks, task);
+    
+    // If the task doesn't need to move, just update the UI
+    if (index == newIndex) {
+      setState(() {});
+      return;
+    }
+    
+    // Remove the task from current position with animation
     setState(() {
-      final column = columns.firstWhere((col) => col.id == columnId);
-      final task = column.tasks[index];
-      task.isDone = !task.isDone;
-      
-      // Remove the task from its current position
       column.tasks.removeAt(index);
-      
-      // Find the new position based on completion status
-      final firstMarkedIndex = column.tasks.indexWhere((t) => t.isDone);
-      final insertIndex = firstMarkedIndex == -1 ? column.tasks.length : firstMarkedIndex;
-      
-      // Insert the task at the new position
-      column.tasks.insert(insertIndex, task);
-      
-      // Update the list state with proper animation
-      column.listKey.currentState?.removeItem(
-        index,
-        (context, animation) => SlideTransition(
-          position: animation.drive(
-            Tween<Offset>(
-              begin: const Offset(1.0, 0.0),
-              end: Offset.zero,
-            ).chain(CurveTween(curve: Curves.easeOut)),
-          ),
-          child: FadeTransition(
-            opacity: animation,
-            child: _buildTaskCardWithDragHandle(task, columnId, insertIndex),
-          ),
-        ),
-      );
-      column.listKey.currentState?.insertItem(insertIndex);
     });
+    
+    column.listKey.currentState?.removeItem(
+      index,
+      (context, animation) => _buildTaskMoveAnimation(animation, task, columnId, index),
+      duration: const Duration(milliseconds: 400),
+    );
+    
+    // Insert the task at new position with delay
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        setState(() {
+          final insertIndex = _findNewTaskPosition(column.tasks, task);
+          column.tasks.insert(insertIndex, task);
+          column.listKey.currentState?.insertItem(
+            insertIndex,
+            duration: const Duration(milliseconds: 400),
+          );
+        });
+      }
+    });
+  }
+
+  int _findNewTaskPosition(List<Task> tasks, Task targetTask) {
+    if (targetTask.isDone) {
+      // For completed tasks, find the position after all incomplete tasks
+      final firstCompletedIndex = tasks.indexWhere((t) => t.isDone);
+      return firstCompletedIndex == -1 ? tasks.length : tasks.length;
+    } else {
+      // For incomplete tasks, find the position before all completed tasks
+      final firstCompletedIndex = tasks.indexWhere((t) => t.isDone);
+      return firstCompletedIndex == -1 ? tasks.length : firstCompletedIndex;
+    }
+  }
+
+  Widget _buildTaskMoveAnimation(Animation<double> animation, Task task, String columnId, int index) {
+    return SlideTransition(
+      position: animation.drive(
+        Tween<Offset>(
+          begin: Offset.zero,
+          end: task.isDone 
+              ? const Offset(0.0, 1.5)  // Slide down when completing
+              : const Offset(0.0, -1.5), // Slide up when uncompleting
+        ).chain(CurveTween(curve: Curves.easeInOut)),
+      ),
+      child: ScaleTransition(
+        scale: animation.drive(
+          Tween<double>(begin: 1.0, end: 0.7).chain(CurveTween(curve: Curves.easeInOut)),
+        ),
+        child: FadeTransition(
+          opacity: animation.drive(
+            Tween<double>(begin: 1.0, end: 0.0).chain(CurveTween(curve: Curves.easeIn)),
+          ),
+          child: _buildEnhancedTaskCard(task, columnId, index),
+        ),
+      ),
+    );
   }
 
   void _removeTask(String taskKey) {
@@ -258,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           child: FadeTransition(
             opacity: animation,
-            child: _buildTaskCardWithDragHandle(task, columnId, index),
+            child: _buildEnhancedTaskCard(task, columnId, index),
           ),
         ),
       );
@@ -278,23 +323,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       column.tasks.clear();
     }
 
-    // Add routine tasks
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (mounted) {
-        for (var column in columns) {
-          for (var task in routines[name]!) {
-            setState(() {
-              column.tasks.add(Task(text: task.text));
-            });
-          }
+    // Add routine tasks with animation
+    if (routines[name] != null) {
+      for (var column in columns) {
+        for (int i = 0; i < routines[name]!.length; i++) {
+          final task = routines[name]![i];
+          Future.delayed(Duration(milliseconds: 300 + (i * 150)), () {
+            if (mounted) {
+              setState(() {
+                column.tasks.add(Task(text: task.text));
+              });
+            }
+          });
         }
-        
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            setState(() {
-              _isLoadingRoutine = false;
-            });
-          }
+      }
+    }
+    
+    // Stop loading state
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      if (mounted) {
+        setState(() {
+          _isLoadingRoutine = false;
         });
       }
     });
@@ -463,81 +512,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   // Widget builders
-  Widget _buildTaskCardWithDragHandle(Task task, String columnId, int index) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      child: InkWell(
-        onTap: () => _toggleTask(columnId, index),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Checkbox(
-                value: task.isDone,
-                onChanged: (bool? value) => _toggleTask(columnId, index),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  task.text,
-                  style: TextStyle(
-                    decoration: task.isDone ? TextDecoration.lineThrough : null,
-                    color: task.isDone ? Colors.grey : null,
-                    fontSize: 18,
-                  ),
-                ),
-              ),
-              if (!_isChildMode && !task.isDone) 
-                ReorderableDragStartListener(
-                  index: index,
-                  child: const Icon(Icons.drag_handle),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAnimatedTaskWrapper(Widget child, int index) {
-    final animationType = routineAnimations[_currentRoutine]?.type ?? RoutineAnimation.slide;
-    final duration = routineAnimations[_currentRoutine]?.duration ?? const Duration(milliseconds: 500);
-    
-    return TweenAnimationBuilder<double>(
-      duration: duration,
-      tween: Tween<double>(begin: 0.0, end: 1.0),
-      builder: (context, value, child) {
-        switch (animationType) {
-          case RoutineAnimation.slide:
-            return Transform.translate(
-              offset: Offset((1.0 - value) * 200, 0),
-              child: child,
-            );
-          case RoutineAnimation.fade:
-            return Opacity(
-              opacity: value,
-              child: child,
-            );
-          case RoutineAnimation.scale:
-            return Transform.scale(
-              scale: value,
-              child: child,
-            );
-          case RoutineAnimation.bounce:
-            return Transform.translate(
-              offset: Offset(0, (1.0 - value) * 100),
-              child: child,
-            );
-          case RoutineAnimation.rotate:
-            return Transform.rotate(
-              angle: (1.0 - value) * 0.5,
-              child: child,
-            );
-        }
-      },
-      child: child,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -547,43 +521,109 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 500),
       data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
       child: Scaffold(
-        appBar: AppBar(
-          leading: Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: () => Scaffold.of(context).openDrawer(),
+        key: _scaffoldKey,
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: _isDarkMode ? [
+                Colors.grey.shade900,
+                Colors.black,
+                Colors.grey.shade800,
+              ] : [
+                Colors.orange.shade50,
+                Colors.white,
+                Colors.pink.shade50,
+              ],
             ),
           ),
-          title: Text(l10n.appTitle),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.language),
-              onPressed: _showLanguageDialog,
-              tooltip: l10n.language,
+          child: SafeArea(
+            child: Column(
+              children: [
+                // Custom App Bar
+                Container(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      // Menu button with circular background
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.menu,
+                            color: Colors.orange.shade600,
+                          ),
+                                                     onPressed: _isChildMode ? null : () => _scaffoldKey.currentState?.openDrawer(),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      // Title
+                      Expanded(
+                        child: Text(
+                          l10n.appTitle,
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: _isDarkMode ? Colors.white : Colors.grey.shade800,
+                          ),
+                        ),
+                      ),
+                      // Action buttons
+                      _buildActionButton(
+                        icon: Icons.language,
+                        color: Colors.blue,
+                        onPressed: _showLanguageDialog,
+                        tooltip: l10n.language,
+                      ),
+                      const SizedBox(width: 8),
+                      if (!_isChildMode) ...[
+                        _buildActionButton(
+                          icon: Icons.home,
+                          color: Colors.green,
+                          onPressed: _showManageHouseholdDialog,
+                          tooltip: l10n.manageHousehold,
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      _buildActionButton(
+                        icon: _isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                        color: Colors.amber,
+                        onPressed: () => _toggleDarkMode(!_isDarkMode),
+                        tooltip: _isDarkMode ? l10n.lightMode : l10n.darkMode,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildActionButton(
+                        icon: _isChildMode ? Icons.child_care : Icons.child_care_outlined,
+                        color: _isChildMode ? Colors.orange : Colors.purple,
+                        onPressed: _toggleChildMode,
+                        tooltip: _isChildMode ? l10n.exitChildMode : l10n.enterChildMode,
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Main content
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Row(
+                      children: columns.map((column) => Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                          child: _buildEnhancedTaskColumn(column),
+                        ),
+                      )).toList(),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            if (!_isChildMode) IconButton(
-              icon: const Icon(Icons.home),
-              onPressed: _showManageHouseholdDialog,
-              tooltip: l10n.manageHousehold,
-            ),
-            // Dark mode toggle
-            IconButton(
-              icon: LightSwitchWidget(
-                isDarkMode: _isDarkMode,
-                onToggle: _toggleDarkMode,
-              ),
-              onPressed: () => _toggleDarkMode(!_isDarkMode),
-              tooltip: _isDarkMode ? l10n.lightMode : l10n.darkMode,
-            ),
-            IconButton(
-              icon: Icon(
-                _isChildMode ? Icons.child_care : Icons.child_care_outlined,
-                color: _isChildMode ? Colors.orange : null,
-              ),
-              onPressed: _toggleChildMode,
-              tooltip: _isChildMode ? l10n.exitChildMode : l10n.enterChildMode,
-            ),
-          ],
+          ),
         ),
         drawer: _isChildMode ? null : RoutineDrawer(
           routines: routines,
@@ -596,30 +636,364 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           onClearAllTasks: _clearAllTasks,
           getLocalizedRoutineName: (name) => RoutineService.getLocalizedRoutineName(name, l10n),
         ),
-        body: Row(
-          children: columns.map((column) => TaskColumn(
-            column: column,
-            isDarkMode: _isDarkMode,
-            isChildMode: _isChildMode,
-            isLoadingRoutine: _isLoadingRoutine,
-            onToggleTask: (taskKey) => _toggleTask(column.id, int.parse(taskKey)),
-            onRemoveTask: _removeTask,
-            onEditColumnName: _showEditMemberNameDialog,
-            onShowColorPicker: _showColorPicker,
-            onAddTask: _addTask,
-            onReorder: (oldIndex, newIndex) {
-              setState(() {
-                if (oldIndex < newIndex) {
-                  newIndex -= 1;
-                }
-                final task = column.tasks.removeAt(oldIndex);
-                column.tasks.insert(newIndex, task);
-              });
-            },
-            buildAnimatedTaskWrapper: _buildAnimatedTaskWrapper,
-            buildTaskCardWithDragHandle: _buildTaskCardWithDragHandle,
-          )).toList(),
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback? onPressed,
+    required String tooltip,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          shape: BoxShape.circle,
         ),
+        child: IconButton(
+          icon: Icon(
+            icon,
+            size: 20,
+            color: color,
+          ),
+          onPressed: onPressed,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEnhancedTaskColumn(ColumnData column) {
+    final l10n = AppLocalizations.of(context)!;
+    
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 800),
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      builder: (context, value, child) {
+        return Transform.translate(
+          offset: Offset(0, (1.0 - value) * 50),
+          child: Opacity(
+            opacity: value,
+            child: Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: _isDarkMode ? [
+                      column.color.withOpacity(0.2),
+                      Colors.grey.shade800,
+                      column.color.withOpacity(0.1),
+                    ] : [
+                      column.color.withOpacity(0.1),
+                      Colors.white,
+                      column.color.withOpacity(0.05),
+                    ],
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    // Column header
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: _isDarkMode 
+                            ? column.color.withOpacity(0.3)
+                            : column.color.withOpacity(0.1),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(20),
+                          topRight: Radius.circular(20),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          // Avatar
+                          CircleAvatar(
+                            backgroundColor: column.color.withOpacity(0.2),
+                            radius: 20,
+                            child: Text(
+                              column.name[0].toUpperCase(),
+                              style: TextStyle(
+                                color: _isDarkMode ? Colors.white : column.color,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          // Column title
+                          Expanded(
+                            child: Text(
+                              column.name,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: _isDarkMode ? Colors.white : Colors.grey.shade800,
+                              ),
+                            ),
+                          ),
+                          // Action buttons
+                          if (!_isChildMode) ...[
+                            _buildColumnActionButton(
+                              icon: Icons.palette,
+                              color: column.color,
+                              onPressed: () => _showColorPicker(column.id),
+                              tooltip: l10n.editColorTooltip,
+                            ),
+                            const SizedBox(width: 4),
+                            _buildColumnActionButton(
+                              icon: Icons.edit,
+                              color: Colors.blue,
+                              onPressed: () => _showEditMemberNameDialog(column.id),
+                              tooltip: l10n.editNameTooltip,
+                            ),
+                            const SizedBox(width: 4),
+                            _buildColumnActionButton(
+                              icon: Icons.add,
+                              color: Colors.green,
+                              onPressed: () => _addTask(column.id),
+                              tooltip: l10n.addTaskTooltip,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    
+                    // Tasks list
+                    Expanded(
+                      child: _isLoadingRoutine
+                          ? const Center(
+                              child: CircularProgressIndicator(),
+                            )
+                          : column.tasks.isEmpty
+                              ? _buildEmptyState()
+                              : Container(
+                                  padding: const EdgeInsets.all(8),
+                                  child: ReorderableListView.builder(
+                                    key: column.listKey,
+                                    itemCount: column.tasks.length,
+                                    buildDefaultDragHandles: false,
+                                    onReorder: _isChildMode ? (oldIndex, newIndex) {} : (oldIndex, newIndex) {
+                                      setState(() {
+                                        if (oldIndex < newIndex) {
+                                          newIndex -= 1;
+                                        }
+                                        final task = column.tasks.removeAt(oldIndex);
+                                        column.tasks.insert(newIndex, task);
+                                      });
+                                    },
+                                    itemBuilder: (context, index) {
+                                      final task = column.tasks[index];
+                                      return _buildEnhancedTaskCard(task, column.id, index);
+                                    },
+                                  ),
+                                ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildColumnActionButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+    required String tooltip,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          shape: BoxShape.circle,
+        ),
+        child: IconButton(
+          icon: Icon(
+            icon,
+            size: 16,
+            color: color,
+          ),
+          onPressed: onPressed,
+          padding: EdgeInsets.zero,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEnhancedTaskCard(Task task, String columnId, int index) {
+    final animationType = routineAnimations[_currentRoutine]?.type ?? RoutineAnimation.slide;
+    
+    return TweenAnimationBuilder<double>(
+      key: ValueKey('${columnId}_$index'),
+      duration: Duration(milliseconds: 500 + (index * 100)),
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      builder: (context, animationValue, child) {
+        Widget animatedChild = Container(
+          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+          child: Card(
+            elevation: task.isDone ? 1 : 3,
+            color: _isDarkMode 
+                ? (task.isDone ? Colors.grey.shade800 : Colors.grey.shade700)
+                : (task.isDone ? Colors.grey.shade100 : Colors.white),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: InkWell(
+              onTap: () => _toggleTask(columnId, index),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Custom checkbox
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: task.isDone ? Colors.green : Colors.grey.shade400,
+                          width: 2,
+                        ),
+                        color: task.isDone ? Colors.green : Colors.transparent,
+                      ),
+                      child: task.isDone
+                          ? const Icon(
+                              Icons.check,
+                              size: 16,
+                              color: Colors.white,
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 14),
+                    // Task text
+                    Expanded(
+                      child: Text(
+                        task.text,
+                        style: TextStyle(
+                          decoration: task.isDone ? TextDecoration.lineThrough : null,
+                          color: task.isDone 
+                              ? (_isDarkMode ? Colors.grey.shade400 : Colors.grey.shade500)
+                              : (_isDarkMode ? Colors.white : Colors.grey.shade800),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    // Drag handle
+                    if (!_isChildMode && !task.isDone) ...[
+                      const SizedBox(width: 8),
+                      ReorderableDragStartListener(
+                        index: index,
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: _isDarkMode ? Colors.grey.shade600 : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.drag_handle,
+                            color: _isDarkMode ? Colors.grey.shade300 : Colors.grey.shade400,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+
+        // Apply animation based on type
+        switch (animationType) {
+          case RoutineAnimation.slide:
+            return Transform.translate(
+              offset: Offset((1.0 - animationValue) * 200, 0),
+              child: Opacity(opacity: animationValue, child: animatedChild),
+            );
+          case RoutineAnimation.fade:
+            return Opacity(opacity: animationValue, child: animatedChild);
+          case RoutineAnimation.scale:
+            return Transform.scale(
+              scale: 0.5 + (animationValue * 0.5),
+              child: Opacity(opacity: animationValue, child: animatedChild),
+            );
+          case RoutineAnimation.bounce:
+            final bounceValue = animationValue < 0.5 
+                ? 4 * animationValue * animationValue * animationValue 
+                : 1 - 4 * (1 - animationValue) * (1 - animationValue) * (1 - animationValue);
+            return Transform.translate(
+              offset: Offset(0, (1.0 - bounceValue) * 100),
+              child: Opacity(opacity: animationValue, child: animatedChild),
+            );
+          case RoutineAnimation.rotate:
+            return Transform.rotate(
+              angle: (1.0 - animationValue) * 0.5,
+              child: Opacity(opacity: animationValue, child: animatedChild),
+            );
+        }
+      },
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.task_alt,
+              size: 30,
+              color: Colors.grey.shade400,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            AppLocalizations.of(context)!.noTasksYet,
+            style: TextStyle(
+              color: Colors.grey.shade500,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            AppLocalizations.of(context)!.addTasksToGetStarted,
+            style: TextStyle(
+              color: Colors.grey.shade400,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }

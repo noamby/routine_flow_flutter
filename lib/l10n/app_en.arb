@@ -80,5 +80,7 @@
   "trackProgress": "Track Progress",
   "trackProgressDescription": "Check off completed tasks. Finished tasks move to the bottom automatically.",
   "childMode": "Child Mode",
-  "childModeDescription": "Enable child mode for a safe, simplified interface. Kids can check off tasks without editing."
+  "childModeDescription": "Enable child mode for a safe, simplified interface. Kids can check off tasks without editing.",
+  "noTasksYet": "No tasks yet",
+  "addTasksToGetStarted": "Add tasks to get started"
 } 

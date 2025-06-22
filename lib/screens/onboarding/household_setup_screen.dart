@@ -79,7 +79,7 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen>
       await PreferencesService.saveHouseholdMembers(_children);
     } else {
       // Default children if none added
-      await PreferencesService.saveHouseholdMembers(['Child 1', 'Child 2']);
+      await PreferencesService.saveHouseholdMembers(['Alex', 'Sam']);
     }
     widget.onCompleted();
   }
