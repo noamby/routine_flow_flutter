@@ -89,10 +89,7 @@ class _TaskCardState extends State<TaskCard> with SingleTickerProviderStateMixin
                       ),
                     ),
                   ),
-                  if (!widget.task.isDone) ReorderableDragStartListener(
-                    index: -1, // This will be set by the parent
-                    child: const Icon(Icons.drag_handle),
-                  ),
+                  const Icon(Icons.drag_handle),
                 ],
               ),
             ),

@@ -54,6 +54,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   bool _isDarkMode = false;
   bool _isChildMode = false;
+  bool _isLoadingRoutine = false;
 
   @override
   void didChangeDependencies() {
@@ -351,6 +352,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     setState(() {
       _isDarkMode = name == 'Evening Routine';
       _currentRoutine = name;
+      _isLoadingRoutine = true;
     });
 
     // First, remove all existing tasks with animation
@@ -399,15 +401,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               if (mounted) {
                 setState(() {
                   column.tasks.add(Task(text: task.text));
-                  column.listKey.currentState?.insertItem(
-                    column.tasks.length - 1,
-                    duration: routineAnimations[name]?.duration ?? const Duration(milliseconds: 500),
-                  );
                 });
               }
             },
           );
         }
+        // Mark loading as complete after all tasks are added
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            setState(() {
+              _isLoadingRoutine = false;
+            });
+          }
+        });
       }
     });
   }
@@ -643,10 +649,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       type: value!,
                     );
                   });
+                  // Show a snackbar to confirm the change
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Animation changed to ${value!.name.toUpperCase()}'),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
                 },
               ),
-              title: Text(type.name.toUpperCase()),
+              title: Text(
+                type.name.toUpperCase(),
+                style: TextStyle(
+                  fontWeight: currentSettings?.type == type ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
               subtitle: Text(description),
+              tileColor: currentSettings?.type == type ? Colors.blue.withOpacity(0.1) : null,
             );
           }).toList(),
         ),
@@ -660,15 +679,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildAnimatedTask(Task task, int index, String columnId, String routineName) {
-    final animation = routineAnimations[routineName] ?? RoutineAnimationSettings(
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
-      type: RoutineAnimation.slide,
-    );
 
+
+  Widget _buildTaskCardWithDragHandle(Task task, String columnId, int index) {
     return Card(
-      key: ValueKey(task),
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: InkWell(
         onTap: () => _toggleTask(columnId, index),
@@ -691,14 +705,58 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ),
               ),
-              if (!_isChildMode) ReorderableDragStartListener(
-                index: index,
-                child: const Icon(Icons.drag_handle),
-              ),
+              if (!_isChildMode && !task.isDone) 
+                ReorderableDragStartListener(
+                  index: index,
+                  child: const Icon(Icons.drag_handle),
+                ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildAnimatedTaskWrapper(Widget child, int index) {
+    final animationType = routineAnimations[_currentRoutine]?.type ?? RoutineAnimation.slide;
+    final duration = routineAnimations[_currentRoutine]?.duration ?? const Duration(milliseconds: 500);
+    
+    // Add a delay based on index for staggered animation
+    final delay = Duration(milliseconds: index * 100);
+    
+    return TweenAnimationBuilder<double>(
+      duration: duration,
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      builder: (context, value, child) {
+        switch (animationType) {
+          case RoutineAnimation.slide:
+            return Transform.translate(
+              offset: Offset((1.0 - value) * 200, 0),
+              child: child,
+            );
+          case RoutineAnimation.fade:
+            return Opacity(
+              opacity: value,
+              child: child,
+            );
+          case RoutineAnimation.scale:
+            return Transform.scale(
+              scale: value,
+              child: child,
+            );
+          case RoutineAnimation.bounce:
+            return Transform.translate(
+              offset: Offset(0, (1.0 - value) * 100),
+              child: child,
+            );
+          case RoutineAnimation.rotate:
+            return Transform.rotate(
+              angle: (1.0 - value) * 0.5,
+              child: child,
+            );
+        }
+      },
+      child: child,
     );
   }
 
@@ -889,7 +947,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
                 Expanded(
                   child: ReorderableListView.builder(
-                    key: column.listKey,
                     padding: const EdgeInsets.all(8),
                     itemCount: column.tasks.length,
                     onReorder: (oldIndex, newIndex) {
@@ -914,7 +971,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           child: const Icon(Icons.delete, color: Colors.white),
                         ),
                         onDismissed: _isChildMode ? null : (direction) => _removeTask(column.id, index),
-                        child: _buildAnimatedTask(column.tasks[index], index, column.id, _currentRoutine),
+                        child: _isLoadingRoutine 
+                          ? _buildAnimatedTaskWrapper(
+                              _buildTaskCardWithDragHandle(column.tasks[index], column.id, index),
+                              index,
+                            )
+                          : _buildTaskCardWithDragHandle(column.tasks[index], column.id, index),
                       );
                     },
                   ),
