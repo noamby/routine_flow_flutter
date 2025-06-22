@@ -50,6 +50,7 @@
   "english": "English",
   "hebrew": "עברית",
   "addTaskTooltip": "Add a new task",
-  "changeColorTooltip": "Change column color",
-  "editNameTooltip": "Edit column name"
+  "editColorTooltip": "Edit column color",
+  "editNameTooltip": "Edit column name",
+  "tasksSuffix": "'s Tasks"
 } 

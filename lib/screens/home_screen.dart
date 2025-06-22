@@ -18,22 +18,18 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
-  final List<ColumnData> columns = [
-    ColumnData(
-      id: 'assaf',
-      name: "Assaf's Tasks",
-      color: Colors.green.shade100,
-      tasks: [],
-      listKey: GlobalKey<AnimatedListState>(),
-    ),
-    ColumnData(
-      id: 'ofir',
-      name: "Ofir's Tasks",
-      color: Colors.purple.shade100,
-      tasks: [],
-      listKey: GlobalKey<AnimatedListState>(),
-    ),
-  ];
+  // Configurable list of names - you can modify this list as needed
+  List<String> _columnNames = ['Assaf', 'Ofir'];
+  
+  late List<ColumnData> columns;
+
+  // Method to easily update the column names - call this to change the default columns
+  void updateColumnNames(List<String> newNames) {
+    setState(() {
+      _columnNames = newNames;
+      _initializeColumns();
+    });
+  }
 
   String _currentRoutine = 'Morning Routine';
 
@@ -62,7 +58,34 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _initializeColumns();
     _initializeRoutines();
+  }
+
+  void _initializeColumns() {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = [
+      Colors.green.shade100,
+      Colors.purple.shade100,
+      Colors.blue.shade100,
+      Colors.orange.shade100,
+      Colors.pink.shade100,
+      Colors.teal.shade100,
+      Colors.amber.shade100,
+      Colors.indigo.shade100,
+    ];
+
+    columns = _columnNames.asMap().entries.map((entry) {
+      final index = entry.key;
+      final name = entry.value;
+      return ColumnData(
+        id: name.toLowerCase(),
+        name: name + l10n.tasksSuffix,
+        color: colors[index % colors.length],
+        tasks: [],
+        listKey: GlobalKey<AnimatedListState>(),
+      );
+    }).toList();
   }
 
   void _initializeRoutines() {
@@ -145,14 +168,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             onPressed: () {
               if (controller.text.isNotEmpty) {
                 setState(() {
-                  final newId = 'child_${columns.length}';
+                  final newId = controller.text.toLowerCase();
+                  final colors = [
+                    Colors.green.shade100,
+                    Colors.purple.shade100,
+                    Colors.blue.shade100,
+                    Colors.orange.shade100,
+                    Colors.pink.shade100,
+                    Colors.teal.shade100,
+                    Colors.amber.shade100,
+                    Colors.indigo.shade100,
+                  ];
                   columns.add(ColumnData(
                     id: newId,
-                    name: "${controller.text}'s Tasks",
-                    color: Colors.blue.shade100,
+                    name: controller.text + l10n.tasksSuffix,
+                    color: colors[columns.length % colors.length],
                     tasks: [],
                     listKey: GlobalKey<AnimatedListState>(),
                   ));
+                  _columnNames.add(controller.text);
                 });
                 Navigator.pop(context);
               }
@@ -445,6 +479,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         icon: const Icon(Icons.delete_outline, color: Colors.red),
                         onPressed: () {
                           setState(() {
+                            _columnNames.removeAt(index);
                             columns.removeAt(index);
                           });
                           Navigator.pop(context);
@@ -807,23 +842,26 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 fontWeight: FontWeight.bold,
                               ),
                               overflow: TextOverflow.ellipsis,
-                            ) : GestureDetector(
-                              onTap: () => _showEditColumnNameDialog(column.id),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      column.name,
-                                      style: const TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
+                            ) : Tooltip(
+                              message: l10n.editNameTooltip,
+                              child: GestureDetector(
+                                onTap: () => _showEditColumnNameDialog(column.id),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        column.name,
+                                        style: const TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Icon(Icons.edit, size: 20),
-                                ],
+                                    const SizedBox(width: 8),
+                                    const Icon(Icons.edit, size: 20),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -834,7 +872,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 icon: const Icon(Icons.color_lens_outlined),
                                 onPressed: () => _showColorPicker(column.id),
                                 padding: const EdgeInsets.all(8),
-                                tooltip: l10n.changeColorTooltip,
+                                tooltip: l10n.editColorTooltip,
                               ),
                               if (!_isChildMode) IconButton(
                                 icon: const Icon(Icons.add_circle_outline),

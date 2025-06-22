@@ -50,6 +50,7 @@
   "english": "English",
   "hebrew": "עברית",
   "addTaskTooltip": "הוסף משימה חדשה",
-  "changeColorTooltip": "שנה צבע עמודה",
-  "editNameTooltip": "ערוך שם עמודה"
+  "editColorTooltip": "ערוך צבע עמודה",
+  "editNameTooltip": "ערוך שם עמודה",
+  "tasksSuffix": " - משימות"
 } 
