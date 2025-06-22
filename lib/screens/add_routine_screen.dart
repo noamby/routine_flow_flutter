@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/task.dart';
 import '../widgets/add_task_dialog.dart';
-import '../widgets/task_card.dart';
 import '../utils/routine_animation.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -171,9 +170,31 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
           ),
           child: FadeTransition(
             opacity: animation,
-            child: TaskCard(
-              task: task,
-              onToggle: () {},
+            child: Card(
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    Checkbox(
+                      value: task.isDone,
+                      onChanged: null,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        task.text,
+                        style: TextStyle(
+                          decoration: task.isDone ? TextDecoration.lineThrough : null,
+                          color: task.isDone ? Colors.grey : null,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    const Icon(Icons.drag_handle),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -256,9 +277,38 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
                     child: const Icon(Icons.delete, color: Colors.white),
                   ),
                   onDismissed: (direction) => _removeTask(index),
-                  child: TaskCard(
-                    task: _tasks[index],
-                    onToggle: () {},
+                  child: Card(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          Checkbox(
+                            value: _tasks[index].isDone,
+                            onChanged: (bool? value) {
+                              setState(() {
+                                _tasks[index].isDone = !_tasks[index].isDone;
+                              });
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _tasks[index].text,
+                              style: TextStyle(
+                                decoration: _tasks[index].isDone ? TextDecoration.lineThrough : null,
+                                color: _tasks[index].isDone ? Colors.grey : null,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ),
+                          ReorderableDragStartListener(
+                            index: index,
+                            child: const Icon(Icons.drag_handle),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 );
               },

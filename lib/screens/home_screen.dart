@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../models/task.dart';
 import '../models/column_data.dart';
-import '../widgets/add_task_dialog.dart';
-import '../widgets/task_card.dart';
 import '../utils/routine_animation.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import '../widgets/language_dialog.dart';
+import '../widgets/column_dialogs.dart';
+import '../widgets/routine_drawer.dart';
+import '../widgets/task_column.dart';
+import '../widgets/animation_picker_dialog.dart';
+import '../widgets/add_task_dialog.dart';
+import '../services/routine_service.dart';
 import 'add_routine_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -22,35 +26,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   List<String> _columnNames = ['Assaf', 'Ofir'];
   
   late List<ColumnData> columns;
-
-  // Method to easily update the column names - call this to change the default columns
-  void updateColumnNames(List<String> newNames) {
-    setState(() {
-      _columnNames = newNames;
-      _initializeColumns();
-    });
-  }
-
   String _currentRoutine = 'Morning Routine';
-
   late Map<String, List<Task>> routines;
-  final Map<String, IconData> routineIcons = {
-    'Morning Routine': Icons.wb_sunny,
-    'Evening Routine': Icons.nightlight,
-  };
-
-  final Map<String, RoutineAnimationSettings> routineAnimations = {
-    'Morning Routine': RoutineAnimationSettings(
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
-      type: RoutineAnimation.slide,
-    ),
-    'Evening Routine': RoutineAnimationSettings(
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
-      type: RoutineAnimation.fade,
-    ),
-  };
+  late Map<String, IconData> routineIcons;
+  late Map<String, RoutineAnimationSettings> routineAnimations;
 
   bool _isDarkMode = false;
   bool _isChildMode = false;
@@ -59,146 +38,120 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _initializeColumns();
-    _initializeRoutines();
+    _initializeData();
   }
 
-  void _initializeColumns() {
+  void _initializeData() {
     final l10n = AppLocalizations.of(context)!;
-    final colors = [
-      Colors.green.shade100,
-      Colors.purple.shade100,
-      Colors.blue.shade100,
-      Colors.orange.shade100,
-      Colors.pink.shade100,
-      Colors.teal.shade100,
-      Colors.amber.shade100,
-      Colors.indigo.shade100,
-    ];
-
-    columns = _columnNames.asMap().entries.map((entry) {
-      final index = entry.key;
-      final name = entry.value;
-      return ColumnData(
-        id: name.toLowerCase(),
-        name: name + l10n.tasksSuffix,
-        color: colors[index % colors.length],
-        tasks: [],
-        listKey: GlobalKey<AnimatedListState>(),
-      );
-    }).toList();
+    columns = RoutineService.initializeColumns(_columnNames, l10n);
+    routines = RoutineService.initializeRoutines(l10n);
+    routineIcons = RoutineService.getDefaultIcons();
+    routineAnimations = RoutineService.getDefaultAnimations();
   }
 
-  void _initializeRoutines() {
-    final l10n = AppLocalizations.of(context)!;
-    routines = {
-      'Morning Routine': [
-        Task(text: l10n.wakeUp),
-        Task(text: l10n.brushTeeth),
-        Task(text: l10n.getDressed),
-        Task(text: l10n.eatBreakfast),
-        Task(text: l10n.packBag),
-      ],
-      'Evening Routine': [
-        Task(text: l10n.takeABath),
-        Task(text: l10n.brushTeeth),
-        Task(text: l10n.readABook),
-        Task(text: l10n.goToSleep),
-      ],
-    };
+  // Method to easily update the column names - call this to change the default columns
+  void updateColumnNames(List<String> newNames) {
+    setState(() {
+      _columnNames = newNames;
+      _initializeData();
+    });
   }
 
+  // Dialog methods
   void _showLanguageDialog() {
-    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.language),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: Text(l10n.english),
-              leading: const Icon(Icons.language),
-              onTap: () {
-                widget.onLocaleChange(const Locale('en'));
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              title: Text(l10n.hebrew),
-              leading: const Icon(Icons.language),
-              onTap: () {
-                widget.onLocaleChange(const Locale('he'));
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.close),
-          ),
-        ],
+      builder: (context) => LanguageDialog(onLocaleChange: widget.onLocaleChange),
+    );
+  }
+
+  void _showAddColumnDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AddColumnDialog(
+        onAdd: (name) {
+          setState(() {
+            final newColumn = RoutineService.createNewColumn(
+              name, 
+              AppLocalizations.of(context)!, 
+              columns.length
+            );
+            columns.add(newColumn);
+            _columnNames.add(name);
+          });
+        },
       ),
     );
   }
 
-  void _addNewColumn() {
-    final l10n = AppLocalizations.of(context)!;
-    final controller = TextEditingController();
+  void _showEditColumnNameDialog(String columnId) {
+    final column = columns.firstWhere((col) => col.id == columnId);
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.addNewColumn),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: l10n.enterChildName,
-            border: const OutlineInputBorder(),
-          ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                setState(() {
-                  final newId = controller.text.toLowerCase();
-                  final colors = [
-                    Colors.green.shade100,
-                    Colors.purple.shade100,
-                    Colors.blue.shade100,
-                    Colors.orange.shade100,
-                    Colors.pink.shade100,
-                    Colors.teal.shade100,
-                    Colors.amber.shade100,
-                    Colors.indigo.shade100,
-                  ];
-                  columns.add(ColumnData(
-                    id: newId,
-                    name: controller.text + l10n.tasksSuffix,
-                    color: colors[columns.length % colors.length],
-                    tasks: [],
-                    listKey: GlobalKey<AnimatedListState>(),
-                  ));
-                  _columnNames.add(controller.text);
-                });
-                Navigator.pop(context);
-              }
-            },
-            child: Text(l10n.add),
-          ),
-        ],
+      builder: (context) => EditColumnNameDialog(
+        column: column,
+        onSave: (newName) {
+          setState(() {
+            column.name = newName;
+          });
+        },
       ),
     );
   }
 
+  void _showColorPicker(String columnId) {
+    final column = columns.firstWhere((col) => col.id == columnId);
+    showDialog(
+      context: context,
+      builder: (context) => ColorPickerDialog(
+        column: column,
+        onColorChanged: (color) {
+          setState(() {
+            column.color = color;
+          });
+        },
+      ),
+    );
+  }
+
+  void _showManageColumnsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => ManageColumnsDialog(
+        columns: columns,
+        onDelete: (index) {
+          setState(() {
+            _columnNames.removeAt(index);
+            columns.removeAt(index);
+          });
+          _showManageColumnsDialog();
+        },
+        onEdit: _showEditColumnNameDialog,
+        onAddNew: _showAddColumnDialog,
+      ),
+    );
+  }
+
+  void _showAnimationPicker(String routineName) {
+    showDialog(
+      context: context,
+      builder: (context) => AnimationPickerDialog(
+        routineName: routineName,
+        currentSettings: routineAnimations[routineName],
+        onAnimationSelected: (animationType) {
+          setState(() {
+            routineAnimations[routineName] = RoutineAnimationSettings(
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut,
+              type: animationType,
+            );
+          });
+        },
+      ),
+    );
+  }
+
+  // Task management methods
   void _addTask(String columnId) {
     showDialog(
       context: context,
@@ -246,10 +199,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           child: FadeTransition(
             opacity: animation,
-            child: TaskCard(
-              task: task,
-              onToggle: () => _toggleTask(columnId, insertIndex),
-            ),
+            child: _buildTaskCardWithDragHandle(task, columnId, insertIndex),
           ),
         ),
       );
@@ -257,7 +207,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     });
   }
 
-  void _removeTask(String columnId, int index) {
+  void _removeTask(String taskKey) {
+    final parts = taskKey.split('_');
+    final columnId = parts[0];
+    final index = int.parse(parts[1]);
+    
     setState(() {
       final column = columns.firstWhere((col) => col.id == columnId);
       final task = column.tasks.removeAt(index);
@@ -272,141 +226,37 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           child: FadeTransition(
             opacity: animation,
-            child: TaskCard(
-              task: task,
-              onToggle: () => _toggleTask(columnId, index),
-            ),
+            child: _buildTaskCardWithDragHandle(task, columnId, index),
           ),
         ),
       );
     });
   }
 
-  void _showColorPicker(String columnId) {
-    final l10n = AppLocalizations.of(context)!;
-    final column = columns.firstWhere((col) => col.id == columnId);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.pickColor),
-        content: SingleChildScrollView(
-          child: ColorPicker(
-            pickerColor: column.color,
-            onColorChanged: (color) {
-              setState(() {
-                column.color = color;
-              });
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.done),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showEditColumnNameDialog(String columnId) {
-    final l10n = AppLocalizations.of(context)!;
-    final column = columns.firstWhere((col) => col.id == columnId);
-    final controller = TextEditingController(text: column.name);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.editName),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: l10n.enterColumnName,
-            border: const OutlineInputBorder(),
-          ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                setState(() {
-                  column.name = controller.text;
-                });
-                Navigator.pop(context);
-              }
-            },
-            child: Text(l10n.save),
-          ),
-        ],
-      ),
-    );
-  }
-
+  // Routine management methods
   void _loadRoutine(String name) {
-    // Update theme based on routine
     setState(() {
       _isDarkMode = name == 'Evening Routine';
       _currentRoutine = name;
       _isLoadingRoutine = true;
     });
 
-    // First, remove all existing tasks with animation
+    // Clear existing tasks
     for (var column in columns) {
-      Future.forEach(
-        List.generate(column.tasks.length, (i) => i),
-        (i) async {
-          await Future.delayed(const Duration(milliseconds: 50));
-          if (mounted) {
-            setState(() {
-              if (column.tasks.isNotEmpty) {
-                final task = column.tasks.removeLast();
-                column.listKey.currentState?.removeItem(
-                  column.tasks.length,
-                  (context, animation) => SlideTransition(
-                    position: animation.drive(
-                      Tween<Offset>(
-                        begin: const Offset(1.0, 0.0),
-                        end: Offset.zero,
-                      ).chain(CurveTween(curve: Curves.easeOut)),
-                    ),
-                    child: FadeTransition(
-                      opacity: animation,
-                      child: TaskCard(
-                        task: task,
-                        onToggle: () => _toggleTask(column.id, column.tasks.length),
-                      ),
-                    ),
-                  ),
-                );
-              }
-            });
-          }
-        },
-      );
+      column.tasks.clear();
     }
 
-    // After all tasks are removed, add new tasks with the selected animation
-    Future.delayed(Duration(milliseconds: columns.first.tasks.length * 50 + 200), () {
+    // Add routine tasks
+    Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) {
         for (var column in columns) {
-          Future.forEach(
-            routines[name]!,
-            (task) async {
-              await Future.delayed(const Duration(milliseconds: 50));
-              if (mounted) {
-                setState(() {
-                  column.tasks.add(Task(text: task.text));
-                });
-              }
-            },
-          );
+          for (var task in routines[name]!) {
+            setState(() {
+              column.tasks.add(Task(text: task.text));
+            });
+          }
         }
-        // Mark loading as complete after all tasks are added
+        
         Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted) {
             setState(() {
@@ -419,109 +269,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _clearAllTasks() {
-    for (var column in columns) {
-      Future.forEach(
-        List.generate(column.tasks.length, (i) => i),
-        (i) async {
-          await Future.delayed(const Duration(milliseconds: 50));
-          if (mounted) {
-            setState(() {
-              if (column.tasks.isNotEmpty) {
-                final task = column.tasks.removeLast();
-                column.listKey.currentState?.removeItem(
-                  column.tasks.length,
-                  (context, animation) => SlideTransition(
-                    position: animation.drive(
-                      Tween<Offset>(
-                        begin: const Offset(1.0, 0.0),
-                        end: Offset.zero,
-                      ).chain(CurveTween(curve: Curves.easeOut)),
-                    ),
-                    child: FadeTransition(
-                      opacity: animation,
-                      child: TaskCard(
-                        task: task,
-                        onToggle: () => _toggleTask(column.id, column.tasks.length),
-                      ),
-                    ),
-                  ),
-                );
-              }
-            });
-          }
-        },
-      );
-    }
-  }
-
-  void _showManageColumnsDialog() {
-    final l10n = AppLocalizations.of(context)!;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.manageColumns),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: columns.length,
-            itemBuilder: (context, index) {
-              final column = columns[index];
-              return ListTile(
-                leading: Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: column.color,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                title: Text(column.name),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (columns.length > 2)
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.red),
-                        onPressed: () {
-                          setState(() {
-                            _columnNames.removeAt(index);
-                            columns.removeAt(index);
-                          });
-                          Navigator.pop(context);
-                          _showManageColumnsDialog();
-                        },
-                      ),
-                    IconButton(
-                      icon: const Icon(Icons.edit),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _showEditColumnNameDialog(column.id);
-                      },
-                      tooltip: l10n.editNameTooltip,
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.close),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pop(context);
-              _addNewColumn();
-            },
-            icon: const Icon(Icons.add),
-            label: Text(l10n.addNewColumn),
-          ),
-        ],
-      ),
-    );
+    setState(() {
+      for (var column in columns) {
+        column.tasks.clear();
+      }
+    });
   }
 
   void _addNewRoutine() {
@@ -545,6 +297,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     setState(() {
       routines.remove(name);
       routineIcons.remove(name);
+      routineAnimations.remove(name);
     });
   }
 
@@ -608,79 +361,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
-  void _showAnimationPicker(String routineName) {
-    final l10n = AppLocalizations.of(context)!;
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.selectAnimation),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: RoutineAnimation.values.map((type) {
-            final currentSettings = routineAnimations[routineName];
-            String description;
-            switch (type) {
-              case RoutineAnimation.slide:
-                description = l10n.tasksSlideInFromRight;
-                break;
-              case RoutineAnimation.fade:
-                description = l10n.tasksFadeInSmoothly;
-                break;
-              case RoutineAnimation.scale:
-                description = l10n.tasksScaleUpFromNothing;
-                break;
-              case RoutineAnimation.bounce:
-                description = l10n.tasksBounceInFromBottom;
-                break;
-              case RoutineAnimation.rotate:
-                description = l10n.tasksRotateIn;
-                break;
-            }
-            return ListTile(
-              leading: Radio<RoutineAnimation>(
-                value: type,
-                groupValue: currentSettings?.type,
-                onChanged: (value) {
-                  Navigator.pop(dialogContext);
-                  setState(() {
-                    routineAnimations[routineName] = RoutineAnimationSettings(
-                      duration: const Duration(milliseconds: 500),
-                      curve: Curves.easeInOut,
-                      type: value!,
-                    );
-                  });
-                  // Show a snackbar to confirm the change
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Animation changed to ${value!.name.toUpperCase()}'),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                },
-              ),
-              title: Text(
-                type.name.toUpperCase(),
-                style: TextStyle(
-                  fontWeight: currentSettings?.type == type ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-              subtitle: Text(description),
-              tileColor: currentSettings?.type == type ? Colors.blue.withOpacity(0.1) : null,
-            );
-          }).toList(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(l10n.close),
-          ),
-        ],
-      ),
-    );
-  }
-
-
-
+  // Widget builders
   Widget _buildTaskCardWithDragHandle(Task task, String columnId, int index) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -721,9 +402,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final animationType = routineAnimations[_currentRoutine]?.type ?? RoutineAnimation.slide;
     final duration = routineAnimations[_currentRoutine]?.duration ?? const Duration(milliseconds: 500);
     
-    // Add a delay based on index for staggered animation
-    final delay = Duration(milliseconds: index * 100);
-    
     return TweenAnimationBuilder<double>(
       duration: duration,
       tween: Tween<double>(begin: 0.0, end: 1.0),
@@ -760,22 +438,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  String _getLocalizedRoutineName(String routineName) {
-    final l10n = AppLocalizations.of(context)!;
-    switch (routineName) {
-      case 'Morning Routine':
-        return l10n.morningRoutine;
-      case 'Evening Routine':
-        return l10n.eveningRoutine;
-      default:
-        return routineName;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isRTL = Directionality.of(context) == TextDirection.rtl;
     
     return AnimatedTheme(
       duration: const Duration(milliseconds: 500),
@@ -810,179 +475,38 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ],
         ),
-        drawer: _isChildMode ? null : Drawer(
-          child: Column(
-            children: [
-              DrawerHeader(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor,
-                ),
-                child: Center(
-                  child: Text(
-                    l10n.routines,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: ListView(
-                  padding: EdgeInsets.zero,
-                  children: [
-                    ...routines.keys.map((name) {
-                      final isCustomRoutine = !['Morning Routine', 'Evening Routine'].contains(name);
-                      return ListTile(
-                        leading: Icon(routineIcons[name] ?? Icons.schedule),
-                        title: Row(
-                          children: [
-                            Expanded(child: Text(_getLocalizedRoutineName(name))),
-                            IconButton(
-                              icon: const Icon(Icons.animation, size: 20),
-                              onPressed: () => _showAnimationPicker(name),
-                            ),
-                            if (isCustomRoutine)
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                onPressed: () => _deleteRoutine(name),
-                              ),
-                          ],
-                        ),
-                        onTap: () {
-                          Navigator.pop(context);
-                          _loadRoutine(name);
-                        },
-                      );
-                    }).toList(),
-                    const Divider(),
-                    ListTile(
-                      leading: const Icon(Icons.add_circle_outline),
-                      title: Text(l10n.addNewRoutine),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _addNewRoutine();
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.delete_forever, color: Colors.red),
-                      title: Text(l10n.clearAllTasks, style: const TextStyle(color: Colors.red)),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _clearAllTasks();
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        drawer: _isChildMode ? null : RoutineDrawer(
+          routines: routines,
+          routineIcons: routineIcons,
+          onRoutineSelected: _loadRoutine,
+          onAnimationPicker: _showAnimationPicker,
+          onDeleteRoutine: _deleteRoutine,
+          onAddNewRoutine: _addNewRoutine,
+          onClearAllTasks: _clearAllTasks,
+          getLocalizedRoutineName: (name) => RoutineService.getLocalizedRoutineName(name, l10n),
         ),
         body: Row(
-          children: columns.map((column) => Expanded(
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  color: column.color.withOpacity(_isDarkMode ? 0.3 : 1.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: _isChildMode ? Text(
-                              column.name,
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ) : Tooltip(
-                              message: l10n.editNameTooltip,
-                              child: GestureDetector(
-                                onTap: () => _showEditColumnNameDialog(column.id),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        column.name,
-                                        style: const TextStyle(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    const Icon(Icons.edit, size: 20),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          Wrap(
-                            spacing: 4,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.color_lens_outlined),
-                                onPressed: () => _showColorPicker(column.id),
-                                padding: const EdgeInsets.all(8),
-                                tooltip: l10n.editColorTooltip,
-                              ),
-                              if (!_isChildMode) IconButton(
-                                icon: const Icon(Icons.add_circle_outline),
-                                onPressed: () => _addTask(column.id),
-                                padding: const EdgeInsets.all(8),
-                                tooltip: l10n.addTaskTooltip,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: ReorderableListView.builder(
-                    padding: const EdgeInsets.all(8),
-                    itemCount: column.tasks.length,
-                    onReorder: (oldIndex, newIndex) {
-                      if (!_isChildMode) {
-                        setState(() {
-                          if (oldIndex < newIndex) {
-                            newIndex -= 1;
-                          }
-                          final task = column.tasks.removeAt(oldIndex);
-                          column.tasks.insert(newIndex, task);
-                        });
-                      }
-                    },
-                    itemBuilder: (context, index) {
-                      return Dismissible(
-                        key: ValueKey(column.tasks[index]),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 20),
-                          color: Colors.red,
-                          child: const Icon(Icons.delete, color: Colors.white),
-                        ),
-                        onDismissed: _isChildMode ? null : (direction) => _removeTask(column.id, index),
-                        child: _isLoadingRoutine 
-                          ? _buildAnimatedTaskWrapper(
-                              _buildTaskCardWithDragHandle(column.tasks[index], column.id, index),
-                              index,
-                            )
-                          : _buildTaskCardWithDragHandle(column.tasks[index], column.id, index),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
+          children: columns.map((column) => TaskColumn(
+            column: column,
+            isDarkMode: _isDarkMode,
+            isChildMode: _isChildMode,
+            isLoadingRoutine: _isLoadingRoutine,
+            onToggleTask: (taskKey) => _toggleTask(column.id, int.parse(taskKey)),
+            onRemoveTask: _removeTask,
+            onEditColumnName: _showEditColumnNameDialog,
+            onShowColorPicker: _showColorPicker,
+            onAddTask: _addTask,
+            onReorder: (oldIndex, newIndex) {
+              setState(() {
+                if (oldIndex < newIndex) {
+                  newIndex -= 1;
+                }
+                final task = column.tasks.removeAt(oldIndex);
+                column.tasks.insert(newIndex, task);
+              });
+            },
+            buildAnimatedTaskWrapper: _buildAnimatedTaskWrapper,
+            buildTaskCardWithDragHandle: _buildTaskCardWithDragHandle,
           )).toList(),
         ),
       ),
