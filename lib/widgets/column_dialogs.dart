@@ -17,11 +17,11 @@ class AddColumnDialog extends StatelessWidget {
     final controller = TextEditingController();
 
     return AlertDialog(
-      title: Text(l10n.addNewColumn),
+      title: Text(l10n.addNewMember),
       content: TextField(
         controller: controller,
         decoration: InputDecoration(
-          hintText: l10n.enterChildName,
+          hintText: l10n.enterMemberName,
           border: const OutlineInputBorder(),
         ),
         autofocus: true,
@@ -65,7 +65,7 @@ class EditColumnNameDialog extends StatelessWidget {
       content: TextField(
         controller: controller,
         decoration: InputDecoration(
-          hintText: l10n.enterColumnName,
+          hintText: l10n.enterMemberName,
           border: const OutlineInputBorder(),
         ),
         autofocus: true,
@@ -140,7 +140,7 @@ class ManageColumnsDialog extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return AlertDialog(
-      title: Text(l10n.manageColumns),
+      title: Text(l10n.manageHousehold),
       content: SizedBox(
         width: double.maxFinite,
         child: ListView.builder(
@@ -194,7 +194,7 @@ class ManageColumnsDialog extends StatelessWidget {
             onAddNew();
           },
           icon: const Icon(Icons.add),
-          label: Text(l10n.addNewColumn),
+          label: Text(l10n.addNewMember),
         ),
       ],
     );

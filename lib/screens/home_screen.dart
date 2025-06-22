@@ -24,8 +24,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
-  // Configurable list of names - you can modify this list as needed
-  List<String> _columnNames = ['Assaf', 'Ofir'];
+  // Configurable list of household member names - you can modify this list as needed
+  List<String> _memberNames = ['Assaf', 'Ofir'];
   
   late List<ColumnData> columns;
   String _currentRoutine = 'Morning Routine';
@@ -52,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   void _initializeData() {
     final l10n = AppLocalizations.of(context)!;
-    columns = RoutineService.initializeColumns(_columnNames, l10n);
+    columns = RoutineService.initializeColumns(_memberNames, l10n);
     routines = RoutineService.initializeRoutines(l10n, null);
     routineIcons = RoutineService.getDefaultIcons();
     routineAnimations = RoutineService.getDefaultAnimations();
@@ -61,19 +61,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _updateLocalization() {
     final l10n = AppLocalizations.of(context)!;
     setState(() {
-      // Update column names with new localization but preserve existing data
-      RoutineService.updateColumnNamesWithLocalization(columns, _columnNames, l10n);
+          // Update member names with new localization but preserve existing data
+    RoutineService.updateColumnNamesWithLocalization(columns, _memberNames, l10n);
       // Update routines with new localization but preserve custom routines
       routines = RoutineService.initializeRoutines(l10n, routines);
     });
   }
 
-  // Method to easily update the column names - call this to change the default columns
-  void updateColumnNames(List<String> newNames) {
+  // Method to easily update the member names - call this to change the default household members
+  void updateMemberNames(List<String> newNames) {
     setState(() {
-      _columnNames = newNames;
+      _memberNames = newNames;
       final l10n = AppLocalizations.of(context)!;
-      columns = RoutineService.initializeColumns(_columnNames, l10n);
+      columns = RoutineService.initializeColumns(_memberNames, l10n);
     });
   }
 
@@ -85,7 +85,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  void _showAddColumnDialog() {
+  void _showAddMemberDialog() {
     showDialog(
       context: context,
       builder: (context) => AddColumnDialog(
@@ -97,14 +97,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               columns.length
             );
             columns.add(newColumn);
-            _columnNames.add(name);
+            _memberNames.add(name);
           });
         },
       ),
     );
   }
 
-  void _showEditColumnNameDialog(String columnId) {
+  void _showEditMemberNameDialog(String columnId) {
     final column = columns.firstWhere((col) => col.id == columnId);
     showDialog(
       context: context,
@@ -134,20 +134,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  void _showManageColumnsDialog() {
+  void _showManageHouseholdDialog() {
     showDialog(
       context: context,
       builder: (context) => ManageColumnsDialog(
         columns: columns,
         onDelete: (index) {
           setState(() {
-            _columnNames.removeAt(index);
+            _memberNames.removeAt(index);
             columns.removeAt(index);
           });
-          _showManageColumnsDialog();
+          _showManageHouseholdDialog();
         },
-        onEdit: _showEditColumnNameDialog,
-        onAddNew: _showAddColumnDialog,
+        onEdit: _showEditMemberNameDialog,
+        onAddNew: _showAddMemberDialog,
       ),
     );
   }
@@ -550,9 +550,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               tooltip: l10n.language,
             ),
             if (!_isChildMode) IconButton(
-              icon: const Icon(Icons.view_column),
-              onPressed: _showManageColumnsDialog,
-              tooltip: l10n.manageColumns,
+              icon: const Icon(Icons.home),
+              onPressed: _showManageHouseholdDialog,
+              tooltip: l10n.manageHousehold,
             ),
             // Dark mode toggle
             IconButton(
@@ -592,7 +592,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             isLoadingRoutine: _isLoadingRoutine,
             onToggleTask: (taskKey) => _toggleTask(column.id, int.parse(taskKey)),
             onRemoveTask: _removeTask,
-            onEditColumnName: _showEditColumnNameDialog,
+            onEditColumnName: _showEditMemberNameDialog,
             onShowColorPicker: _showColorPicker,
             onAddTask: _addTask,
             onReorder: (oldIndex, newIndex) {
