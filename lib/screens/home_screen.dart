@@ -16,8 +16,13 @@ import 'edit_routine_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final Function(Locale) onLocaleChange;
+  final List<String>? initialMembers;
   
-  const HomeScreen({super.key, required this.onLocaleChange});
+  const HomeScreen({
+    super.key, 
+    required this.onLocaleChange,
+    this.initialMembers,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -25,7 +30,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // Configurable list of household member names - you can modify this list as needed
-  List<String> _memberNames = ['Assaf', 'Ofir'];
+  late List<String> _memberNames;
   
   late List<ColumnData> columns;
   String _currentRoutine = 'Morning Routine';
@@ -38,6 +43,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isLoadingRoutine = false;
 
   bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize member names from saved preferences or use defaults
+    _memberNames = widget.initialMembers ?? ['Assaf', 'Ofir'];
+  }
 
   @override
   void didChangeDependencies() {
