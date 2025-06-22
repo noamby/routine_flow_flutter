@@ -211,133 +211,299 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.addNewRoutine),
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _nameController,
-                    decoration: InputDecoration(
-                      labelText: l10n.routineName,
-                      border: const OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                IconButton(
-                  onPressed: _showIconPicker,
-                  icon: Icon(_selectedIcon),
-                  style: IconButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
-                    padding: const EdgeInsets.all(16),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                IconButton(
-                  onPressed: _showAnimationPicker,
-                  icon: const Icon(Icons.animation),
-                  style: IconButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
-                    padding: const EdgeInsets.all(16),
-                  ),
-                ),
-              ],
-            ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isDarkMode ? [
+              Colors.grey.shade900,
+              Colors.black,
+              Colors.grey.shade800,
+            ] : [
+              Colors.orange.shade50,
+              Colors.white,
+              Colors.pink.shade50,
+            ],
           ),
-          Expanded(
-            child: ReorderableListView.builder(
-              key: _listKey,
-              padding: const EdgeInsets.all(8),
-              itemCount: _tasks.length,
-              onReorder: (oldIndex, newIndex) {
-                setState(() {
-                  if (oldIndex < newIndex) {
-                    newIndex -= 1;
-                  }
-                  final task = _tasks.removeAt(oldIndex);
-                  _tasks.insert(newIndex, task);
-                });
-              },
-              itemBuilder: (context, index) {
-                return Dismissible(
-                  key: ValueKey(_tasks[index]),
-                  direction: DismissDirection.endToStart,
-                  background: Container(
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 20),
-                    color: Colors.red,
-                    child: const Icon(Icons.delete, color: Colors.white),
-                  ),
-                  onDismissed: (direction) => _removeTask(index),
-                  child: Card(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      child: Row(
-                        children: [
-                          Checkbox(
-                            value: _tasks[index].isDone,
-                            onChanged: (bool? value) {
-                              setState(() {
-                                _tasks[index].isDone = !_tasks[index].isDone;
-                              });
-                            },
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom App Bar
+              Container(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    // Back button with circular background
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: isDarkMode ? Colors.grey.shade700 : Colors.orange.shade100,
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: Icon(
+                          Icons.arrow_back,
+                          color: isDarkMode ? Colors.white : Colors.orange.shade600,
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Title
+                    Expanded(
+                      child: Text(
+                        l10n.addNewRoutine,
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: isDarkMode ? Colors.white : Colors.grey.shade800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Content
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Column(
+                    children: [
+                      // Input section
+                      Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _nameController,
+                                  decoration: InputDecoration(
+                                    labelText: l10n.routineName,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    filled: true,
+                                    fillColor: isDarkMode 
+                                      ? Colors.grey.shade800.withOpacity(0.3)
+                                      : Colors.grey.shade50,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: isDarkMode ? Colors.grey.shade700 : Colors.orange.shade100,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: IconButton(
+                                  onPressed: _showIconPicker,
+                                  icon: Icon(
+                                    _selectedIcon,
+                                    color: isDarkMode ? Colors.orange.shade300 : Colors.orange.shade600,
+                                  ),
+                                  tooltip: l10n.selectIcon,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: isDarkMode ? Colors.grey.shade700 : Colors.pink.shade100,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: IconButton(
+                                  onPressed: _showAnimationPicker,
+                                  icon: Icon(
+                                    Icons.animation,
+                                    color: isDarkMode ? Colors.pink.shade300 : Colors.pink.shade600,
+                                  ),
+                                  tooltip: l10n.selectAnimation,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Tasks section
+                      Expanded(
+                        child: Card(
+                          elevation: 4,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: ReorderableListView.builder(
+                              key: _listKey,
+                              padding: const EdgeInsets.all(12),
+                              itemCount: _tasks.length,
+                              onReorder: (oldIndex, newIndex) {
+                                setState(() {
+                                  if (oldIndex < newIndex) {
+                                    newIndex -= 1;
+                                  }
+                                  final task = _tasks.removeAt(oldIndex);
+                                  _tasks.insert(newIndex, task);
+                                });
+                              },
+                              itemBuilder: (context, index) {
+                                return Dismissible(
+                                  key: ValueKey(_tasks[index]),
+                                  direction: DismissDirection.endToStart,
+                                  background: Container(
+                                    alignment: Alignment.centerRight,
+                                    padding: const EdgeInsets.only(right: 20),
+                                    margin: const EdgeInsets.symmetric(vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(Icons.delete, color: Colors.white),
+                                  ),
+                                  onDismissed: (direction) => _removeTask(index),
+                                  child: Card(
+                                    margin: const EdgeInsets.symmetric(vertical: 4),
+                                    elevation: 2,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                      child: Row(
+                                        children: [
+                                          // Custom circular checkbox
+                                          Container(
+                                            width: 24,
+                                            height: 24,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: _tasks[index].isDone 
+                                                  ? Colors.green 
+                                                  : Colors.grey.shade400,
+                                                width: 2,
+                                              ),
+                                              color: _tasks[index].isDone 
+                                                ? Colors.green 
+                                                : Colors.transparent,
+                                            ),
+                                            child: _tasks[index].isDone
+                                              ? const Icon(
+                                                  Icons.check,
+                                                  size: 16,
+                                                  color: Colors.white,
+                                                )
+                                              : null,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                setState(() {
+                                                  _tasks[index].isDone = !_tasks[index].isDone;
+                                                });
+                                              },
+                                              child: Text(
+                                                _tasks[index].text,
+                                                style: TextStyle(
+                                                  decoration: _tasks[index].isDone 
+                                                    ? TextDecoration.lineThrough 
+                                                    : null,
+                                                  color: _tasks[index].isDone 
+                                                    ? Colors.grey 
+                                                    : (isDarkMode ? Colors.white : Colors.black87),
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          ReorderableDragStartListener(
+                                            index: index,
+                                            child: Icon(
+                                              Icons.drag_handle,
+                                              color: Colors.grey.shade400,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Action buttons
+                      Row(
+                        children: [
                           Expanded(
-                            child: Text(
-                              _tasks[index].text,
-                              style: TextStyle(
-                                decoration: _tasks[index].isDone ? TextDecoration.lineThrough : null,
-                                color: _tasks[index].isDone ? Colors.grey : null,
-                                fontSize: 18,
+                            child: ElevatedButton.icon(
+                              onPressed: _addTask,
+                              icon: const Icon(Icons.add),
+                              label: Text(l10n.addTask),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isDarkMode ? Colors.grey.shade700 : Colors.orange.shade100,
+                                foregroundColor: isDarkMode ? Colors.orange.shade300 : Colors.orange.shade700,
+                                elevation: 4,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
                               ),
                             ),
                           ),
-                          ReorderableDragStartListener(
-                            index: index,
-                            child: const Icon(Icons.drag_handle),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                if (_nameController.text.isNotEmpty && _tasks.isNotEmpty) {
+                                  widget.onAdd(_nameController.text, _tasks, _selectedIcon, _animationSettings);
+                                  Navigator.pop(context);
+                                }
+                              },
+                              icon: const Icon(Icons.save),
+                              label: Text(l10n.saveRoutine),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isDarkMode ? Colors.grey.shade700 : Colors.pink.shade100,
+                                foregroundColor: isDarkMode ? Colors.pink.shade300 : Colors.pink.shade700,
+                                elevation: 4,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                    ),
+                    ],
                   ),
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: _addTask,
-                  icon: const Icon(Icons.add),
-                  label: Text(l10n.addTask),
                 ),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    if (_nameController.text.isNotEmpty && _tasks.isNotEmpty) {
-                      widget.onAdd(_nameController.text, _tasks, _selectedIcon, _animationSettings);
-                      Navigator.pop(context);
-                    }
-                  },
-                  icon: const Icon(Icons.save),
-                  label: Text(l10n.saveRoutine),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

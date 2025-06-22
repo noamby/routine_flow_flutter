@@ -16,11 +16,13 @@ import 'edit_routine_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final Function(Locale) onLocaleChange;
+  final Function(bool) onDarkModeChange;
   final List<String>? initialMembers;
   
   const HomeScreen({
     super.key, 
     required this.onLocaleChange,
+    required this.onDarkModeChange,
     this.initialMembers,
   });
 
@@ -41,7 +43,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late Map<String, IconData> routineIcons;
   late Map<String, RoutineAnimationSettings> routineAnimations;
 
-  bool _isDarkMode = false;
+
   bool _isChildMode = false;
   bool _isLoadingRoutine = false;
 
@@ -313,10 +315,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // Routine management methods
   void _loadRoutine(String name) {
     setState(() {
-      _isDarkMode = name == 'Evening Routine';
       _currentRoutine = name;
       _isLoadingRoutine = true;
     });
+
+    // Automatically switch theme based on routine
+    if (name == 'Evening Routine') {
+      widget.onDarkModeChange(true);  // Dark mode for evening
+    } else if (name == 'Morning Routine') {
+      widget.onDarkModeChange(false); // Light mode for morning
+    }
+    // Custom routines don't change the theme automatically
 
     // Clear existing tasks
     for (var column in columns) {
@@ -446,9 +455,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _toggleDarkMode(bool isDark) {
-    setState(() {
-      _isDarkMode = isDark;
-    });
+    widget.onDarkModeChange(isDark);
   }
 
   void _toggleChildMode() {
@@ -516,18 +523,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
-    return AnimatedTheme(
-      duration: const Duration(milliseconds: 500),
-      data: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
-      child: Scaffold(
+    return Scaffold(
         key: _scaffoldKey,
         body: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: _isDarkMode ? [
+              colors: isDarkMode ? [
                 Colors.grey.shade900,
                 Colors.black,
                 Colors.grey.shade800,
@@ -569,7 +574,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           l10n.appTitle,
                           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: _isDarkMode ? Colors.white : Colors.grey.shade800,
+                            color: isDarkMode ? Colors.white : Colors.grey.shade800,
                           ),
                         ),
                       ),
@@ -591,10 +596,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         const SizedBox(width: 8),
                       ],
                       _buildActionButton(
-                        icon: _isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                        icon: isDarkMode ? Icons.light_mode : Icons.dark_mode,
                         color: Colors.amber,
-                        onPressed: () => _toggleDarkMode(!_isDarkMode),
-                        tooltip: _isDarkMode ? l10n.lightMode : l10n.darkMode,
+                        onPressed: () => _toggleDarkMode(!isDarkMode),
+                        tooltip: isDarkMode ? l10n.lightMode : l10n.darkMode,
                       ),
                       const SizedBox(width: 8),
                       _buildActionButton(
@@ -636,8 +641,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           onClearAllTasks: _clearAllTasks,
           getLocalizedRoutineName: (name) => RoutineService.getLocalizedRoutineName(name, l10n),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildActionButton({
@@ -669,6 +673,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildEnhancedTaskColumn(ColumnData column) {
     final l10n = AppLocalizations.of(context)!;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 800),
@@ -689,7 +694,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: _isDarkMode ? [
+                    colors: isDarkMode ? [
                       column.color.withOpacity(0.2),
                       Colors.grey.shade800,
                       column.color.withOpacity(0.1),
@@ -706,7 +711,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: _isDarkMode 
+                        color: isDarkMode 
                             ? column.color.withOpacity(0.3)
                             : column.color.withOpacity(0.1),
                         borderRadius: const BorderRadius.only(
@@ -723,7 +728,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             child: Text(
                               column.name[0].toUpperCase(),
                               style: TextStyle(
-                                color: _isDarkMode ? Colors.white : column.color,
+                                color: isDarkMode ? Colors.white : column.color,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
@@ -736,7 +741,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               column.name,
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: _isDarkMode ? Colors.white : Colors.grey.shade800,
+                                color: isDarkMode ? Colors.white : Colors.grey.shade800,
                               ),
                             ),
                           ),
@@ -837,6 +842,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildEnhancedTaskCard(Task task, String columnId, int index) {
     final animationType = routineAnimations[_currentRoutine]?.type ?? RoutineAnimation.slide;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return TweenAnimationBuilder<double>(
       key: ValueKey('${columnId}_$index'),
@@ -847,7 +853,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
           child: Card(
             elevation: task.isDone ? 1 : 3,
-            color: _isDarkMode 
+            color: isDarkMode 
                 ? (task.isDone ? Colors.grey.shade800 : Colors.grey.shade700)
                 : (task.isDone ? Colors.grey.shade100 : Colors.white),
             shape: RoundedRectangleBorder(
@@ -889,8 +895,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         style: TextStyle(
                           decoration: task.isDone ? TextDecoration.lineThrough : null,
                           color: task.isDone 
-                              ? (_isDarkMode ? Colors.grey.shade400 : Colors.grey.shade500)
-                              : (_isDarkMode ? Colors.white : Colors.grey.shade800),
+                              ? (isDarkMode ? Colors.grey.shade400 : Colors.grey.shade500)
+                              : (isDarkMode ? Colors.white : Colors.grey.shade800),
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),
@@ -907,12 +913,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           width: 32,
                           height: 32,
                           decoration: BoxDecoration(
-                            color: _isDarkMode ? Colors.grey.shade600 : Colors.grey.shade100,
+                            color: isDarkMode ? Colors.grey.shade600 : Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(
                             Icons.drag_handle,
-                            color: _isDarkMode ? Colors.grey.shade300 : Colors.grey.shade400,
+                            color: isDarkMode ? Colors.grey.shade300 : Colors.grey.shade400,
                             size: 18,
                           ),
                         ),

@@ -53,6 +53,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
       body: Container(
@@ -60,7 +61,11 @@ class _TutorialScreenState extends State<TutorialScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
+            colors: isDarkMode ? [
+              Colors.grey.shade900,
+              Colors.black,
+              Colors.grey.shade800,
+            ] : [
               Colors.purple.shade50,
               Colors.blue.shade50,
               Colors.green.shade50,
@@ -80,7 +85,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
                       onPressed: _completeTutorial,
                       child: Text(
                         l10n.skip,
-                        style: TextStyle(color: Colors.grey.shade600),
+                        style: TextStyle(color: isDarkMode ? Colors.grey.shade300 : Colors.grey.shade600),
                       ),
                     ),
                     Row(
@@ -93,7 +98,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
                             shape: BoxShape.circle,
                             color: index == _currentPage
                                 ? Theme.of(context).primaryColor
-                                : Colors.grey.shade300,
+                                : (isDarkMode ? Colors.grey.shade600 : Colors.grey.shade300),
                           ),
                         );
                       }),
@@ -168,11 +173,11 @@ class _TutorialScreenState extends State<TutorialScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     if (_currentPage > 0)
-                      ElevatedButton(
+                                              ElevatedButton(
                         onPressed: _previousPage,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey.shade200,
-                          foregroundColor: Colors.grey.shade700,
+                          backgroundColor: isDarkMode ? Colors.grey.shade700 : Colors.grey.shade200,
+                          foregroundColor: isDarkMode ? Colors.white : Colors.grey.shade700,
                         ),
                         child: Text(l10n.previous),
                       )
@@ -206,6 +211,8 @@ class _TutorialScreenState extends State<TutorialScreen> {
     required String description,
     required String image,
   }) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -216,7 +223,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
             width: 120,
             height: 120,
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
+              color: isDarkMode ? iconColor.withOpacity(0.2) : iconColor.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -234,7 +241,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
+              color: isDarkMode ? iconColor.withOpacity(0.2) : iconColor.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -251,7 +258,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
             title,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
-              color: Colors.grey.shade800,
+              color: isDarkMode ? Colors.white : Colors.grey.shade800,
             ),
             textAlign: TextAlign.center,
           ),
@@ -262,7 +269,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
           Text(
             description,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: Colors.grey.shade600,
+              color: isDarkMode ? Colors.grey.shade300 : Colors.grey.shade600,
               height: 1.5,
             ),
             textAlign: TextAlign.center,

@@ -23,6 +23,7 @@ class _RoutineFlowAppState extends State<RoutineFlowApp> {
   bool _isLoading = true;
   bool _onboardingCompleted = false;
   List<String>? _savedMembers;
+  bool _isDarkMode = false;
 
   @override
   void initState() {
@@ -45,6 +46,9 @@ class _RoutineFlowAppState extends State<RoutineFlowApp> {
       // Load household members
       _savedMembers = await PreferencesService.getHouseholdMembers();
 
+      // Load dark mode preference
+      _isDarkMode = await PreferencesService.getDarkMode();
+
     } catch (e) {
       // Handle error gracefully
       print('Error loading preferences: $e');
@@ -60,6 +64,13 @@ class _RoutineFlowAppState extends State<RoutineFlowApp> {
       _locale = locale;
     });
     PreferencesService.saveLanguage(locale.languageCode);
+  }
+
+  void _setDarkMode(bool isDarkMode) {
+    setState(() {
+      _isDarkMode = isDarkMode;
+    });
+    PreferencesService.saveDarkMode(isDarkMode);
   }
 
   void _completeOnboarding() {
@@ -82,7 +93,14 @@ class _RoutineFlowAppState extends State<RoutineFlowApp> {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         useMaterial3: true,
+        brightness: Brightness.light,
       ),
+      darkTheme: ThemeData(
+        primarySwatch: Colors.blue,
+        useMaterial3: true,
+        brightness: Brightness.dark,
+      ),
+      themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
       locale: _locale,
       localizationsDelegates: const [
         AppLocalizations.delegate,
@@ -96,6 +114,7 @@ class _RoutineFlowAppState extends State<RoutineFlowApp> {
           : _onboardingCompleted
               ? HomeScreen(
                   onLocaleChange: _setLocale,
+                  onDarkModeChange: _setDarkMode,
                   initialMembers: _savedMembers,
                 )
               : _OnboardingFlow(

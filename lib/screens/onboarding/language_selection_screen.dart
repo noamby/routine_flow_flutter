@@ -60,13 +60,19 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
+            colors: isDarkMode ? [
+              Colors.grey.shade900,
+              Colors.black,
+              Colors.grey.shade800,
+            ] : [
               Colors.blue.shade50,
               Colors.white,
               Colors.green.shade50,
@@ -91,11 +97,11 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
                           width: 120,
                           height: 120,
                           decoration: BoxDecoration(
-                            color: Colors.blue.shade100,
+                            color: isDarkMode ? Colors.grey.shade700 : Colors.blue.shade100,
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.blue.withOpacity(0.2),
+                                color: (isDarkMode ? Colors.grey : Colors.blue).withOpacity(0.2),
                                 blurRadius: 20,
                                 spreadRadius: 5,
                               ),
@@ -104,7 +110,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
                           child: Icon(
                             Icons.language,
                             size: 60,
-                            color: Colors.blue.shade600,
+                            color: isDarkMode ? Colors.white : Colors.blue.shade600,
                           ),
                         ),
                         
@@ -115,7 +121,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
                           'Welcome to Routine Flow',
                           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade800,
+                            color: isDarkMode ? Colors.white : Colors.grey.shade800,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -125,7 +131,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
                         Text(
                           'Please select your preferred language',
                           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: Colors.grey.shade600,
+                            color: isDarkMode ? Colors.grey.shade300 : Colors.grey.shade600,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -161,7 +167,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
                           child: Text(
                             'Use device language',
                             style: TextStyle(
-                              color: Colors.grey.shade600,
+                              color: isDarkMode ? Colors.grey.shade300 : Colors.grey.shade600,
                               decoration: TextDecoration.underline,
                             ),
                           ),
@@ -218,7 +224,9 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
                       Text(
                         subtitle,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey.shade600,
+                          color: Theme.of(context).brightness == Brightness.dark 
+                            ? Colors.grey.shade300 
+                            : Colors.grey.shade600,
                         ),
                       ),
                     ],

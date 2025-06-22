@@ -87,6 +87,7 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
       body: Container(
@@ -94,7 +95,11 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
+            colors: isDarkMode ? [
+              Colors.grey.shade900,
+              Colors.black,
+              Colors.grey.shade800,
+            ] : [
               Colors.orange.shade50,
               Colors.white,
               Colors.pink.shade50,
@@ -121,13 +126,13 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen>
                               width: 60,
                               height: 60,
                               decoration: BoxDecoration(
-                                color: Colors.orange.shade100,
+                                color: isDarkMode ? Colors.grey.shade700 : Colors.orange.shade100,
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 Icons.home,
                                 size: 30,
-                                color: Colors.orange.shade600,
+                                color: isDarkMode ? Colors.white : Colors.orange.shade600,
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -144,7 +149,7 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen>
                                   Text(
                                     l10n.addYourFamilyMembers,
                                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: Colors.grey.shade600,
+                                      color: isDarkMode ? Colors.grey.shade300 : Colors.grey.shade600,
                                     ),
                                   ),
                                 ],
@@ -229,13 +234,13 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen>
                                       Icon(
                                         Icons.family_restroom,
                                         size: 80,
-                                        color: Colors.grey.shade300,
+                                        color: isDarkMode ? Colors.grey.shade600 : Colors.grey.shade300,
                                       ),
                                       const SizedBox(height: 16),
                                       Text(
                                         l10n.noFamilyMembersAddedYet,
                                         style: TextStyle(
-                                          color: Colors.grey.shade500,
+                                          color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade500,
                                           fontSize: 16,
                                         ),
                                       ),
@@ -243,7 +248,7 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen>
                                       Text(
                                         l10n.addFamilyMembersAboveOrSkip,
                                         style: TextStyle(
-                                          color: Colors.grey.shade400,
+                                          color: isDarkMode ? Colors.grey.shade500 : Colors.grey.shade400,
                                           fontSize: 14,
                                         ),
                                         textAlign: TextAlign.center,
