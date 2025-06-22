@@ -54,5 +54,8 @@
   "editNameTooltip": "ערוך שם עמודה",
   "tasksSuffix": " - משימות",
   "languageChanged": "השפה שונתה בהצלחה",
-  "updatingInterface": "מעדכן ממשק..."
+  "updatingInterface": "מעדכן ממשק...",
+  "editRoutine": "ערוך שגרה",
+  "routineUpdated": "השגרה עודכנה בהצלחה",
+  "defaultRoutineNameCannotBeChanged": "שם שגרת ברירת המחדל לא ניתן לשינוי"
 } 

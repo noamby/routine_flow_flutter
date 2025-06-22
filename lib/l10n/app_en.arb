@@ -54,5 +54,8 @@
   "editNameTooltip": "Edit column name",
   "tasksSuffix": "'s Tasks",
   "languageChanged": "Language changed successfully",
-  "updatingInterface": "Updating interface..."
+  "updatingInterface": "Updating interface...",
+  "editRoutine": "Edit Routine",
+  "routineUpdated": "Routine updated successfully",
+  "defaultRoutineNameCannotBeChanged": "Default routine name cannot be changed"
 } 

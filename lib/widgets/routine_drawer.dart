@@ -9,6 +9,7 @@ class RoutineDrawer extends StatelessWidget {
   final Function(String) onRoutineSelected;
   final Function(String) onAnimationPicker;
   final Function(String) onDeleteRoutine;
+  final Function(String) onEditRoutine;
   final VoidCallback onAddNewRoutine;
   final VoidCallback onClearAllTasks;
   final Function(String) getLocalizedRoutineName;
@@ -20,6 +21,7 @@ class RoutineDrawer extends StatelessWidget {
     required this.onRoutineSelected,
     required this.onAnimationPicker,
     required this.onDeleteRoutine,
+    required this.onEditRoutine,
     required this.onAddNewRoutine,
     required this.onClearAllTasks,
     required this.getLocalizedRoutineName,
@@ -59,13 +61,20 @@ class RoutineDrawer extends StatelessWidget {
                       children: [
                         Expanded(child: Text(getLocalizedRoutineName(name))),
                         IconButton(
+                          icon: const Icon(Icons.edit, size: 20),
+                          onPressed: () => onEditRoutine(name),
+                          tooltip: AppLocalizations.of(context)!.editRoutine,
+                        ),
+                        IconButton(
                           icon: const Icon(Icons.animation, size: 20),
                           onPressed: () => onAnimationPicker(name),
+                          tooltip: AppLocalizations.of(context)!.selectAnimation,
                         ),
                         if (isCustomRoutine)
                           IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                            icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
                             onPressed: () => onDeleteRoutine(name),
+                            tooltip: AppLocalizations.of(context)!.delete,
                           ),
                       ],
                     ),

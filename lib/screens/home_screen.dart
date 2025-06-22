@@ -11,6 +11,7 @@ import '../widgets/animation_picker_dialog.dart';
 import '../widgets/add_task_dialog.dart';
 import '../services/routine_service.dart';
 import 'add_routine_screen.dart';
+import 'edit_routine_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final Function(Locale) onLocaleChange;
@@ -311,6 +312,69 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  void _editRoutine(String routineName) {
+    final l10n = AppLocalizations.of(context)!;
+    final displayName = RoutineService.getLocalizedRoutineName(routineName, l10n);
+    final isDefaultRoutine = RoutineService.isDefaultRoutine(routineName);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditRoutineScreen(
+          routineName: routineName,
+          displayName: displayName,
+          tasks: routines[routineName]!,
+          icon: routineIcons[routineName] ?? Icons.schedule,
+          animationSettings: routineAnimations[routineName] ?? RoutineAnimationSettings(
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+            type: RoutineAnimation.slide,
+          ),
+          isDefaultRoutine: isDefaultRoutine,
+          onSave: (originalName, newDisplayName, tasks, icon, animationSettings) {
+            setState(() {
+              String finalRoutineName;
+              
+              // For default routines, keep the original internal name regardless of display name changes
+              if (isDefaultRoutine) {
+                finalRoutineName = originalName;
+              } else {
+                // For custom routines, use the new display name as the routine name
+                finalRoutineName = newDisplayName;
+                
+                // Remove old routine if name changed
+                if (originalName != finalRoutineName) {
+                  routines.remove(originalName);
+                  routineIcons.remove(originalName);
+                  routineAnimations.remove(originalName);
+                }
+              }
+              
+              // Add/update routine with new values
+              routines[finalRoutineName] = tasks;
+              routineIcons[finalRoutineName] = icon;
+              routineAnimations[finalRoutineName] = animationSettings;
+              
+              // Update current routine if it was the one being edited
+              if (_currentRoutine == originalName) {
+                _currentRoutine = finalRoutineName;
+              }
+            });
+            
+            // Show success message
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(AppLocalizations.of(context)!.routineUpdated),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   void _deleteRoutine(String name) {
     setState(() {
       routines.remove(name);
@@ -499,6 +563,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           onRoutineSelected: _loadRoutine,
           onAnimationPicker: _showAnimationPicker,
           onDeleteRoutine: _deleteRoutine,
+          onEditRoutine: _editRoutine,
           onAddNewRoutine: _addNewRoutine,
           onClearAllTasks: _clearAllTasks,
           getLocalizedRoutineName: (name) => RoutineService.getLocalizedRoutineName(name, l10n),
