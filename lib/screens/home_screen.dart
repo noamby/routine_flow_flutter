@@ -34,6 +34,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // Configurable list of household member names - you can modify this list as needed
   late List<String> _memberNames;
 
+  // Member icons - stores the selected icon for each column
+  Map<String, IconData> _memberIcons = {};
+
   // Global key for scaffold to access drawer
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -159,6 +162,94 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             column.color = color;
           });
         },
+      ),
+    );
+  }
+
+  void _showIconPicker(String columnId) {
+    final availableIcons = [
+      Icons.person,
+      Icons.face,
+      Icons.child_care,
+      Icons.boy,
+      Icons.girl,
+      Icons.sentiment_satisfied,
+      Icons.sentiment_very_satisfied,
+      Icons.mood,
+      Icons.emoji_emotions,
+      Icons.pets,
+      Icons.favorite,
+      Icons.star,
+      Icons.brightness_5,
+      Icons.wb_sunny,
+      Icons.sports_soccer,
+      Icons.sports_basketball,
+      Icons.sports_baseball,
+      Icons.sports_football,
+      Icons.music_note,
+      Icons.palette,
+      Icons.brush,
+      Icons.draw,
+      Icons.cake,
+      Icons.toys,
+      Icons.rocket_launch,
+      Icons.beach_access,
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Choose Avatar Icon'),
+        content: SizedBox(
+          width: 300,
+          height: 400,
+          child: GridView.builder(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+            ),
+            itemCount: availableIcons.length,
+            itemBuilder: (context, index) {
+              final icon = availableIcons[index];
+              final column = columns.firstWhere((col) => col.id == columnId);
+              final isSelected = _memberIcons[columnId] == icon ||
+                                 (_memberIcons[columnId] == null && icon == Icons.person);
+
+              return InkWell(
+                onTap: () {
+                  setState(() {
+                    _memberIcons[columnId] = icon;
+                  });
+                  Navigator.pop(context);
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? column.color.withOpacity(0.3)
+                        : Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isSelected ? column.color : Colors.transparent,
+                      width: 2,
+                    ),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: column.color,
+                    size: 32,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
       ),
     );
   }
@@ -733,19 +824,54 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                       child: Row(
                         children: [
-                          // Avatar
-                          CircleAvatar(
-                            backgroundColor: column.color.withOpacity(0.2),
-                            radius: 20,
-                            child: Text(
-                              column.name[0].toUpperCase(),
-                              style: TextStyle(
+                          // Avatar - clickable to change icon
+                          if (!_isChildMode)
+                            GestureDetector(
+                              onTap: () => _showIconPicker(column.id),
+                              child: Stack(
+                                children: [
+                                  CircleAvatar(
+                                    backgroundColor: column.color.withOpacity(0.2),
+                                    radius: 20,
+                                    child: Icon(
+                                      _memberIcons[column.id] ?? Icons.person,
+                                      color: isDarkMode ? Colors.white : column.color,
+                                      size: 24,
+                                    ),
+                                  ),
+                                  Positioned(
+                                    right: 0,
+                                    bottom: 0,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(3),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: isDarkMode ? Colors.grey.shade800 : Colors.white,
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.edit,
+                                        size: 10,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            CircleAvatar(
+                              backgroundColor: column.color.withOpacity(0.2),
+                              radius: 20,
+                              child: Icon(
+                                _memberIcons[column.id] ?? Icons.person,
                                 color: isDarkMode ? Colors.white : column.color,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                                size: 24,
                               ),
                             ),
-                          ),
                           const SizedBox(width: 12),
                           // Column title
                           Expanded(

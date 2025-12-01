@@ -56,4 +56,4 @@ class PreferencesService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
   }
-} 
+}

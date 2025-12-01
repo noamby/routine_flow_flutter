@@ -199,4 +199,4 @@ class ManageColumnsDialog extends StatelessWidget {
       ],
     );
   }
-} 
+}

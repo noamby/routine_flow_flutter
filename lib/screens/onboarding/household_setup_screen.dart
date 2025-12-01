@@ -19,7 +19,7 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
-  
+
   final List<String> _children = [];
   final TextEditingController _nameController = TextEditingController();
   final FocusNode _nameFocus = FocusNode();
@@ -31,7 +31,7 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen>
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -88,7 +88,7 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -157,9 +157,9 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen>
                             ),
                           ],
                         ),
-                        
+
                         const SizedBox(height: 40),
-                        
+
                         // Add child section
                         Card(
                           elevation: 2,
@@ -211,9 +211,9 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen>
                             ),
                           ),
                         ),
-                        
+
                         const SizedBox(height: 24),
-                        
+
                         // Children list
                         if (_children.isNotEmpty) ...[
                           Text(
@@ -224,7 +224,7 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen>
                           ),
                           const SizedBox(height: 16),
                         ],
-                        
+
                         Expanded(
                           child: _children.isEmpty
                               ? Center(
@@ -282,9 +282,9 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen>
                                   },
                                 ),
                         ),
-                        
+
                         const SizedBox(height: 24),
-                        
+
                         // Continue button
                         SizedBox(
                           width: double.infinity,
@@ -313,4 +313,4 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen>
       ),
     );
   }
-} 
+}
