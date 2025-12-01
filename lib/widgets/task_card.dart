@@ -163,4 +163,4 @@ class _TaskCardState extends State<TaskCard> with SingleTickerProviderStateMixin
       },
     );
   }
-} 
+}

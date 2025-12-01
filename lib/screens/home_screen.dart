@@ -18,9 +18,9 @@ class HomeScreen extends StatefulWidget {
   final Function(Locale) onLocaleChange;
   final Function(bool) onDarkModeChange;
   final List<String>? initialMembers;
-  
+
   const HomeScreen({
-    super.key, 
+    super.key,
     required this.onLocaleChange,
     required this.onDarkModeChange,
     this.initialMembers,
@@ -33,10 +33,10 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // Configurable list of household member names - you can modify this list as needed
   late List<String> _memberNames;
-  
+
   // Global key for scaffold to access drawer
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  
+
   late List<ColumnData> columns;
   String _currentRoutine = 'Morning Routine';
   late Map<String, List<Task>> routines;
@@ -78,10 +78,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _updateLocalization() {
     final l10n = AppLocalizations.of(context)!;
     setState(() {
-          // Update member names with new localization but preserve existing data
-    RoutineService.updateColumnNamesWithLocalization(columns, _memberNames, l10n);
+      // Update member names with new localization but preserve existing data
+      RoutineService.updateColumnNamesWithLocalization(columns, _memberNames, l10n);
       // Update routines with new localization but preserve custom routines
       routines = RoutineService.initializeRoutines(l10n, routines);
+
+      // If current routine is a default routine, reload its tasks with new language
+      if (RoutineService.isDefaultRoutine(_currentRoutine)) {
+        final updatedTasks = routines[_currentRoutine] ?? [];
+        for (var column in columns) {
+          column.tasks.clear();
+        }
+        // Distribute updated tasks to columns
+        for (int i = 0; i < updatedTasks.length; i++) {
+          columns[i % columns.length].tasks.add(updatedTasks[i]);
+        }
+      }
     });
   }
 
@@ -109,8 +121,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         onAdd: (name) {
           setState(() {
             final newColumn = RoutineService.createNewColumn(
-              name, 
-              AppLocalizations.of(context)!, 
+              name,
+              AppLocalizations.of(context)!,
               columns.length
             );
             columns.add(newColumn);
@@ -211,30 +223,30 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _toggleTask(String columnId, int index) {
     final column = columns.firstWhere((col) => col.id == columnId);
     final task = column.tasks[index];
-    
+
     // Toggle the task status
     task.isDone = !task.isDone;
-    
+
     // Find the new position based on completion status
     final newIndex = _findNewTaskPosition(column.tasks, task);
-    
+
     // If the task doesn't need to move, just update the UI
     if (index == newIndex) {
       setState(() {});
       return;
     }
-    
+
     // Remove the task from current position with animation
     setState(() {
       column.tasks.removeAt(index);
     });
-    
+
     column.listKey.currentState?.removeItem(
       index,
       (context, animation) => _buildTaskMoveAnimation(animation, task, columnId, index),
       duration: const Duration(milliseconds: 400),
     );
-    
+
     // Insert the task at new position with delay
     Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) {
@@ -267,7 +279,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       position: animation.drive(
         Tween<Offset>(
           begin: Offset.zero,
-          end: task.isDone 
+          end: task.isDone
               ? const Offset(0.0, 1.5)  // Slide down when completing
               : const Offset(0.0, -1.5), // Slide up when uncompleting
         ).chain(CurveTween(curve: Curves.easeInOut)),
@@ -290,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final parts = taskKey.split('_');
     final columnId = parts[0];
     final index = int.parse(parts[1]);
-    
+
     setState(() {
       final column = columns.firstWhere((col) => col.id == columnId);
       final task = column.tasks.removeAt(index);
@@ -347,7 +359,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         }
       }
     }
-    
+
     // Stop loading state
     Future.delayed(const Duration(milliseconds: 1000), () {
       if (mounted) {
@@ -387,7 +399,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final l10n = AppLocalizations.of(context)!;
     final displayName = RoutineService.getLocalizedRoutineName(routineName, l10n);
     final isDefaultRoutine = RoutineService.isDefaultRoutine(routineName);
-    
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -405,14 +417,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           onSave: (originalName, newDisplayName, tasks, icon, animationSettings) {
             setState(() {
               String finalRoutineName;
-              
+
               // For default routines, keep the original internal name regardless of display name changes
               if (isDefaultRoutine) {
                 finalRoutineName = originalName;
               } else {
                 // For custom routines, use the new display name as the routine name
                 finalRoutineName = newDisplayName;
-                
+
                 // Remove old routine if name changed
                 if (originalName != finalRoutineName) {
                   routines.remove(originalName);
@@ -420,18 +432,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   routineAnimations.remove(originalName);
                 }
               }
-              
+
               // Add/update routine with new values
               routines[finalRoutineName] = tasks;
               routineIcons[finalRoutineName] = icon;
               routineAnimations[finalRoutineName] = animationSettings;
-              
+
               // Update current routine if it was the one being edited
               if (_currentRoutine == originalName) {
                 _currentRoutine = finalRoutineName;
               }
             });
-            
+
             // Show success message
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -524,7 +536,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Scaffold(
         key: _scaffoldKey,
         body: Container(
@@ -611,7 +623,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ],
                   ),
                 ),
-                
+
                 // Main content
                 Expanded(
                   child: Padding(
@@ -674,7 +686,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildEnhancedTaskColumn(ColumnData column) {
     final l10n = AppLocalizations.of(context)!;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 800),
       tween: Tween<double>(begin: 0.0, end: 1.0),
@@ -711,7 +723,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: isDarkMode 
+                        color: isDarkMode
                             ? column.color.withOpacity(0.3)
                             : column.color.withOpacity(0.1),
                         borderRadius: const BorderRadius.only(
@@ -771,7 +783,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         ],
                       ),
                     ),
-                    
+
                     // Tasks list
                     Expanded(
                       child: _isLoadingRoutine
@@ -843,7 +855,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildEnhancedTaskCard(Task task, String columnId, int index) {
     final animationType = routineAnimations[_currentRoutine]?.type ?? RoutineAnimation.slide;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return TweenAnimationBuilder<double>(
       key: ValueKey('${columnId}_$index'),
       duration: Duration(milliseconds: 500 + (index * 100)),
@@ -853,7 +865,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
           child: Card(
             elevation: task.isDone ? 1 : 3,
-            color: isDarkMode 
+            color: isDarkMode
                 ? (task.isDone ? Colors.grey.shade800 : Colors.grey.shade700)
                 : (task.isDone ? Colors.grey.shade100 : Colors.white),
             shape: RoundedRectangleBorder(
@@ -894,7 +906,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         task.text,
                         style: TextStyle(
                           decoration: task.isDone ? TextDecoration.lineThrough : null,
-                          color: task.isDone 
+                          color: task.isDone
                               ? (isDarkMode ? Colors.grey.shade400 : Colors.grey.shade500)
                               : (isDarkMode ? Colors.white : Colors.grey.shade800),
                           fontSize: 16,
@@ -946,8 +958,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               child: Opacity(opacity: animationValue, child: animatedChild),
             );
           case RoutineAnimation.bounce:
-            final bounceValue = animationValue < 0.5 
-                ? 4 * animationValue * animationValue * animationValue 
+            final bounceValue = animationValue < 0.5
+                ? 4 * animationValue * animationValue * animationValue
                 : 1 - 4 * (1 - animationValue) * (1 - animationValue) * (1 - animationValue);
             return Transform.translate(
               offset: Offset(0, (1.0 - bounceValue) * 100),
@@ -1003,4 +1015,4 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ),
     );
   }
-} 
+}

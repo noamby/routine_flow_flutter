@@ -9,6 +9,7 @@
   "addNewMember": "Add New Member",
   "addNewTask": "Add New Task",
   "editName": "Edit Name",
+  "eatVitamins": "💊 Eat vitamins",
   "enterChildName": "Enter family member name",
   "enterMemberName": "Enter member name",
   "enterTaskText": "Enter task text",
@@ -20,6 +21,7 @@
   "delete": "Delete",
   "edit": "Edit",
   "pickColor": "Pick a color",
+  "playTime": "📚♠️ Play time",
   "selectIcon": "Select Icon",
   "selectAnimation": "Select Animation",
   "routineName": "Routine Name",
@@ -83,4 +85,4 @@
   "childModeDescription": "Enable child mode for a safe, simplified interface. Kids can check off tasks without editing.",
   "noTasksYet": "No tasks yet",
   "addTasksToGetStarted": "Add tasks to get started"
-} 
+}

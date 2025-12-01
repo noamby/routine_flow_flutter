@@ -17,7 +17,7 @@ class RoutineService {
   ];
 
   static List<ColumnData> initializeColumns(
-    List<String> columnNames, 
+    List<String> columnNames,
     AppLocalizations l10n
   ) {
     return columnNames.asMap().entries.map((entry) {
@@ -37,33 +37,35 @@ class RoutineService {
     return {
       'Morning Routine': [
         Task(text: l10n.wakeUp),
+        Task(text: l10n.playTime),
+        Task(text: l10n.eatBreakfast),
         Task(text: l10n.brushTeeth),
         Task(text: l10n.getDressed),
-        Task(text: l10n.eatBreakfast),
         Task(text: l10n.packBag),
+        Task(text: l10n.eatVitamins),
       ],
       'Evening Routine': [
         Task(text: l10n.takeABath),
-        Task(text: l10n.brushTeeth),
         Task(text: l10n.readABook),
+        Task(text: l10n.brushTeeth),
         Task(text: l10n.goToSleep),
       ],
     };
   }
 
   static Map<String, List<Task>> initializeRoutines(
-    AppLocalizations l10n, 
+    AppLocalizations l10n,
     Map<String, List<Task>>? existingCustomRoutines
   ) {
     final defaultRoutines = getDefaultRoutines(l10n);
-    
+
     if (existingCustomRoutines != null) {
       // Preserve custom routines and update default ones with new language
       final result = <String, List<Task>>{};
-      
+
       // Add updated default routines
       result.addAll(defaultRoutines);
-      
+
       // Add back custom routines (non-default ones)
       final customRoutineCount = existingCustomRoutines.length - defaultRoutines.length;
       existingCustomRoutines.forEach((name, tasks) {
@@ -71,15 +73,15 @@ class RoutineService {
           result[name] = tasks; // Keep custom routines as-is
         }
       });
-      
+
       // Debug: Print routine preservation info
       if (customRoutineCount > 0) {
         print('RoutineService: Preserved $customRoutineCount custom routines during language change');
       }
-      
+
       return result;
     }
-    
+
     return defaultRoutines;
   }
 
@@ -110,8 +112,8 @@ class RoutineService {
   }
 
   static ColumnData createNewColumn(
-    String name, 
-    AppLocalizations l10n, 
+    String name,
+    AppLocalizations l10n,
     int existingColumnsCount
   ) {
     return ColumnData(
@@ -145,4 +147,4 @@ class RoutineService {
       columns[i].name = baseName + l10n.tasksSuffix;
     }
   }
-} 
+}

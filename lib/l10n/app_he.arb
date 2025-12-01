@@ -9,6 +9,7 @@
   "addNewMember": "הוסף בן משפחה",
   "addNewTask": "הוסף משימה חדשה",
   "editName": "ערוך שם",
+  "eatVitamins": "💊 לאכול ויטמין",
   "enterChildName": "הכנס שם בן משפחה",
   "enterMemberName": "הכנס שם בן משפחה",
   "enterTaskText": "הכנס טקסט משימה",
@@ -20,6 +21,7 @@
   "delete": "מחק",
   "edit": "ערוך",
   "pickColor": "בחר צבע",
+  "playTime": "📚♠️ זמן משחק",
   "selectIcon": "בחר אייקון",
   "selectAnimation": "בחר אנימציה",
   "routineName": "שם השגרה",
@@ -83,4 +85,4 @@
   "childModeDescription": "הפעל מצב ילדים לממשק בטוח ופשוט. ילדים יכולים לסמן משימות בלי לערוך.",
   "noTasksYet": "עדיין אין משימות",
   "addTasksToGetStarted": "הוסף משימות כדי להתחיל"
-} 
+}
