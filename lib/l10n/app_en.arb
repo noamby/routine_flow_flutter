@@ -84,5 +84,11 @@
   "childMode": "Child Mode",
   "childModeDescription": "Enable child mode for a safe, simplified interface. Kids can check off tasks without editing.",
   "noTasksYet": "No tasks yet",
-  "addTasksToGetStarted": "Add tasks to get started"
+  "addTasksToGetStarted": "Add tasks to get started",
+  "confirmDelete": "Confirm Delete",
+  "cannotDeleteLastMember": "Cannot delete the last member",
+  "viewMode": "View Mode",
+  "tabView": "Tab View",
+  "columnView": "Column View",
+  "userPreferences": "User Preferences"
 }

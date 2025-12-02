@@ -84,5 +84,11 @@
   "childMode": "מצב ילדים",
   "childModeDescription": "הפעל מצב ילדים לממשק בטוח ופשוט. ילדים יכולים לסמן משימות בלי לערוך.",
   "noTasksYet": "עדיין אין משימות",
-  "addTasksToGetStarted": "הוסף משימות כדי להתחיל"
+  "addTasksToGetStarted": "הוסף משימות כדי להתחיל",
+  "confirmDelete": "אישור מחיקה",
+  "cannotDeleteLastMember": "לא ניתן למחוק את בן המשפחה האחרון",
+  "viewMode": "מצב תצוגה",
+  "tabView": "תצוגת כרטיסיות",
+  "columnView": "תצוגת עמודות",
+  "userPreferences": "העדפות משתמש"
 }

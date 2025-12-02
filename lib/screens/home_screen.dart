@@ -22,10 +22,12 @@ import '../widgets/home/routine_column_view.dart';
 import '../widgets/home/member_avatar_widget.dart';
 import '../widgets/home/routine_column_header.dart';
 import '../widgets/home/enhanced_task_card.dart';
+import '../widgets/dialogs/avatar_icon_picker_dialog.dart';
 import '../services/routine_service.dart';
 import '../services/preferences_service.dart';
 import 'add_routine_screen.dart';
 import 'edit_routine_screen.dart';
+import 'manage_household_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final Function(Locale) onLocaleChange;
@@ -200,6 +202,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  void _changeLanguage(String languageCode) async {
+    final newLocale = Locale(languageCode);
+    await PreferencesService.saveLanguage(languageCode);
+    widget.onLocaleChange(newLocale);
+  }
+
   void _showAddMemberDialog() {
     showDialog(
       context: context,
@@ -250,181 +258,78 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _showIconPicker(String columnId) {
-    final availableIcons = [
-      Icons.person,
-      Icons.face,
-      Icons.child_care,
-      Icons.boy,
-      Icons.girl,
-      Icons.sentiment_satisfied,
-      Icons.sentiment_very_satisfied,
-      Icons.mood,
-      Icons.emoji_emotions,
-      Icons.pets,
-      Icons.favorite,
-      Icons.star,
-      Icons.brightness_5,
-      Icons.wb_sunny,
-      Icons.sports_soccer,
-      Icons.sports_basketball,
-      Icons.sports_baseball,
-      Icons.sports_football,
-      Icons.music_note,
-      Icons.palette,
-      Icons.brush,
-      Icons.draw,
-      Icons.cake,
-      Icons.toys,
-      Icons.rocket_launch,
-      Icons.beach_access,
-    ];
+    final column = columns.firstWhere((col) => col.id == columnId);
+    final hasCustomImage = _memberImages.containsKey(columnId) || _memberImageBytes.containsKey(columnId);
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Choose Avatar Icon'),
-        content: SizedBox(
-          width: 300,
-          height: 400,
-          child: GridView.builder(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            itemCount: availableIcons.length,
-            itemBuilder: (context, index) {
-              final icon = availableIcons[index];
-              final column = columns.firstWhere((col) => col.id == columnId);
-              final isSelected = _memberIcons[columnId] == icon ||
-                                 (_memberIcons[columnId] == null && icon == Icons.person);
+      builder: (context) => AvatarIconPickerDialog(
+        memberColor: column.color,
+        currentIcon: _memberIcons[columnId],
+        hasCustomImage: hasCustomImage,
+        onIconSelected: (icon) {
+          setState(() {
+            _memberIcons[columnId] = icon;
+            // Clear custom image if icon selected
+            _memberImages.remove(columnId);
+            _memberImageBytes.remove(columnId);
+          });
+          _saveMemberAvatars();
+        },
+        onImageSelected: (bytes) async {
+          if (kIsWeb) {
+            setState(() {
+              _memberImageBytes[columnId] = bytes;
+              _memberImages[columnId] = base64Encode(bytes);
+              _memberIcons.remove(columnId);
+            });
+          } else {
+            // For mobile: save to file system
+            final directory = await getApplicationDocumentsDirectory();
+            final fileName = 'avatar_${columnId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+            final file = File('${directory.path}/$fileName');
+            await file.writeAsBytes(bytes);
 
-              return InkWell(
-                onTap: () {
-                  setState(() {
-                    _memberIcons[columnId] = icon;
-                  });
-                  Navigator.pop(context);
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? column.color.withOpacity(0.3)
-                        : Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isSelected ? column.color : Colors.transparent,
-                      width: 2,
-                    ),
-                  ),
-                  child: Icon(
-                    icon,
-                    color: column.color,
-                    size: 32,
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        actions: [
-          ElevatedButton.icon(
-            onPressed: () async {
-              Navigator.pop(context);
-              await _pickAndCropImage(columnId);
-            },
-            icon: const Icon(Icons.add_photo_alternate),
-            label: const Text('Upload Image'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-        ],
+            setState(() {
+              _memberImages[columnId] = file.path;
+              _memberImageBytes[columnId] = bytes;
+              _memberIcons.remove(columnId);
+            });
+          }
+          _saveMemberAvatars();
+        },
       ),
     );
   }
 
-  Future<void> _pickAndCropImage(String columnId) async {
-    try {
-      print('Starting image picker...');
+  void _openManageHouseholdScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ManageHouseholdScreen(
+          columns: columns,
+          memberNames: _memberNames,
+          memberIcons: _memberIcons,
+          memberImages: _memberImages,
+          memberImageBytes: _memberImageBytes,
+          onSave: (newMemberNames, newColumns, newIcons, newImages, newImageBytes) async {
+            setState(() {
+              _memberNames = newMemberNames;
+              columns = newColumns;
+              _memberIcons = newIcons;
+              _memberImages = newImages;
+              _memberImageBytes = newImageBytes;
 
-      // Pick image from gallery
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 85,
-        maxWidth: 512,
-        maxHeight: 512,
-      );
+              // Recreate tab controller with new count
+              _tabController.dispose();
+              _tabController = TabController(length: columns.length, vsync: this);
+            });
 
-      print('Image picked: ${image?.path}');
-
-      if (image == null) {
-        print('No image selected');
-        return;
-      }
-
-      // Read image bytes
-      final bytes = await image.readAsBytes();
-      print('Image bytes loaded: ${bytes.length}');
-
-      if (kIsWeb) {
-        // For web: store bytes in memory and base64 in preferences
-        setState(() {
-          _memberImageBytes[columnId] = bytes;
-          _memberImages[columnId] = base64Encode(bytes);
-          _memberIcons.remove(columnId);
-        });
-      } else {
-        // For mobile: save to file system
-        final directory = await getApplicationDocumentsDirectory();
-        final fileName = 'avatar_${columnId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final savePath = '${directory.path}/$fileName';
-        await File(savePath).writeAsBytes(bytes);
-
-        setState(() {
-          _memberImages[columnId] = savePath;
-          _memberIcons.remove(columnId);
-        });
-      }
-
-      await _saveMemberAvatars();
-
-      print('Avatar updated for column: $columnId');
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Avatar updated successfully!'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error uploading image: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error uploading image: $e')),
-        );
-      }
-    }
-  }
-
-
-  void _showManageHouseholdDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => ManageColumnsDialog(
-        columns: columns,
-        onDelete: (index) {
-          setState(() {
-            _memberNames.removeAt(index);
-            columns.removeAt(index);
-          });
-          _showManageHouseholdDialog();
-        },
-        onEdit: _showEditMemberNameDialog,
-        onAddNew: _showAddMemberDialog,
+            // Save changes to preferences
+            await PreferencesService.saveHouseholdMembers(_memberNames);
+            await _saveMemberAvatars();
+          },
+        ),
       ),
     );
   }
@@ -858,36 +763,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           ),
                         ),
                       ),
-                      // Action buttons
-                      if (!_isChildMode) ...[
-                        _buildActionButton(
-                          icon: Icons.language,
-                          color: Colors.blue,
-                          onPressed: _showLanguageDialog,
-                          tooltip: l10n.language,
-                        ),
-                        const SizedBox(width: 8),
-                        _buildActionButton(
-                          icon: Icons.home,
-                          color: Colors.green,
-                          onPressed: _showManageHouseholdDialog,
-                          tooltip: l10n.manageHousehold,
-                        ),
-                        const SizedBox(width: 8),
-                      ],
+                      // Action buttons - only dark mode and child mode remain in header
                       _buildActionButton(
                         icon: isDarkMode ? Icons.light_mode : Icons.dark_mode,
                         color: Colors.amber,
                         onPressed: () => _toggleDarkMode(!isDarkMode),
                         tooltip: isDarkMode ? l10n.lightMode : l10n.darkMode,
-                      ),
-                      const SizedBox(width: 8),
-                      // View mode toggle - tabs vs columns
-                      _buildActionButton(
-                        icon: _forceTabView ? Icons.view_column : Icons.view_carousel,
-                        color: Colors.teal,
-                        onPressed: _toggleViewMode,
-                        tooltip: _forceTabView ? 'Column View' : 'Tab View',
                       ),
                       const SizedBox(width: 8),
                       _buildActionButton(
@@ -930,6 +811,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           onAddNewRoutine: _addNewRoutine,
           onClearAllTasks: _clearAllTasks,
           getLocalizedRoutineName: (name) => RoutineService.getLocalizedRoutineName(name, l10n),
+          // User preferences
+          forceTabView: _forceTabView,
+          onToggleViewMode: _toggleViewMode,
+          currentLanguage: _currentLocale?.languageCode ?? 'en',
+          onLanguageChanged: _changeLanguage,
+          onManageHousehold: _openManageHouseholdScreen,
         ),
       );
   }

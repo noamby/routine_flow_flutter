@@ -90,24 +90,27 @@ class EditColumnNameDialog extends StatelessWidget {
 }
 
 class ColorPickerDialog extends StatelessWidget {
-  final ColumnData column;
+  final ColumnData? column;
+  final Color? initialColor;
   final Function(Color) onColorChanged;
 
   const ColorPickerDialog({
     super.key,
-    required this.column,
+    this.column,
+    this.initialColor,
     required this.onColorChanged,
-  });
+  }) : assert(column != null || initialColor != null, 'Either column or initialColor must be provided');
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final color = column?.color ?? initialColor!;
 
     return AlertDialog(
       title: Text(l10n.pickColor),
       content: SingleChildScrollView(
         child: ColorPicker(
-          pickerColor: column.color,
+          pickerColor: color,
           onColorChanged: onColorChanged,
         ),
       ),
@@ -161,7 +164,7 @@ class ManageColumnsDialog extends StatelessWidget {
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (columns.length > 2)
+                  if (columns.length > 1)
                     IconButton(
                       icon: const Icon(Icons.delete_outline, color: Colors.red),
                       onPressed: () {
