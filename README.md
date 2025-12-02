@@ -6,17 +6,21 @@ A beautiful Flutter app to help families organize daily routines for children. C
 
 - **Morning & Evening Routines** - Built-in routines with customizable tasks
 - **Multiple Family Members** - Each child gets their own task column with personalized colors and avatars
+- **Custom Avatars** - Choose from icons or upload your own photos
 - **Child Mode** 🔒 - Lock the app so kids can only check tasks (with Android screen pinning support)
-- **Dark/Light Mode** - Automatic theme switching based on routine (dark for evening!)
-- **Multi-Language** - English and Hebrew support
+- **Dark/Light Mode** - Beautiful sun/moon toggle in menu, auto-switches for evening routines!
+- **Color Picker in Child Mode** - Kids can change their column colors for fun
+- **Multi-Language** - English and Hebrew support with full translations
 - **Beautiful Animations** - 5 different animation styles for task lists
+- **Flexible Views** - Tab view (one person) or column view (everyone side by side)
+- **Interactive Tutorial** - 7-page guide accessible anytime from the menu
 - **Responsive Design** - Works on phones, tablets, and web
 
 ## 📱 Quick Install (Android)
 
 ### Download the APK
 
-1. Download the latest APK from the [releases folder](releases/routine-flow-v1.0.0.apk)
+1. Download the latest APK: **[routine-flow-v1.1.0.apk](releases/routine-flow-v1.1.0.apk)** (23.6 MB)
 2. Transfer to your Android device
 3. Open the APK file and tap "Install"
    - You may need to enable "Install from unknown sources" in Settings
@@ -25,8 +29,12 @@ A beautiful Flutter app to help families organize daily routines for children. C
 
 If you have ADB set up:
 ```bash
-adb install releases/routine-flow-v1.0.0.apk
+adb install releases/routine-flow-v1.1.0.apk
 ```
+
+### Previous Versions
+
+- [v1.0.0](releases/routine-flow-v1.0.0.apk) - Initial release
 
 ## 🔒 Child Mode (Android)
 
@@ -57,8 +65,8 @@ flutter run -d chrome
 flutter run -d <device-id>
 
 # Build release APK
-export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
-flutter build apk --release
+export JAVA_HOME=$(/usr/libexec/java_home -v 17)
+flutter build apk --release --no-tree-shake-icons
 ```
 
 ### Project Structure
