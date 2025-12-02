@@ -67,6 +67,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isLoadingRoutine = false;
 
   bool _isInitialized = false;
+  Locale? _currentLocale;
 
   @override
   void initState() {
@@ -109,12 +110,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final currentLocale = Localizations.localeOf(context);
+
     if (!_isInitialized) {
       _initializeData();
+      _currentLocale = currentLocale;
       _isInitialized = true;
-    } else {
+    } else if (_currentLocale != currentLocale) {
+      // Only update localization if locale actually changed
+      _currentLocale = currentLocale;
       _updateLocalization();
     }
+    // If only theme changed (not locale), do nothing - don't reload tasks
   }
 
   void _initializeData() {
@@ -123,6 +130,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     routines = RoutineService.initializeRoutines(l10n, null);
     routineIcons = RoutineService.getDefaultIcons();
     routineAnimations = RoutineService.getDefaultAnimations();
+
+    // Load the default Morning Routine tasks - add ALL tasks to ALL columns
+    if (routines[_currentRoutine] != null) {
+      final tasks = routines[_currentRoutine]!;
+      for (var column in columns) {
+        for (var task in tasks) {
+          column.tasks.add(Task(text: task.text));
+        }
+      }
+    }
   }
 
   void _updateLocalization() {
@@ -138,10 +155,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         final updatedTasks = routines[_currentRoutine] ?? [];
         for (var column in columns) {
           column.tasks.clear();
-        }
-        // Distribute updated tasks to columns
-        for (int i = 0; i < updatedTasks.length; i++) {
-          columns[i % columns.length].tasks.add(updatedTasks[i]);
+          // Add ALL tasks to each column
+          for (var task in updatedTasks) {
+            column.tasks.add(task);
+          }
         }
       }
     });
@@ -556,7 +573,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       column.tasks.clear();
     }
 
-    // Add routine tasks with animation
+    // Add routine tasks with animation - add ALL tasks to ALL columns
     if (routines[name] != null) {
       for (var column in columns) {
         for (int i = 0; i < routines[name]!.length; i++) {
