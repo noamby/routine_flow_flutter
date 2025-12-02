@@ -4,10 +4,14 @@ import '../../services/preferences_service.dart';
 
 class LanguageSelectionScreen extends StatefulWidget {
   final Function(Locale) onLanguageSelected;
+  final bool canGoBack;
+  final VoidCallback? onBack;
 
   const LanguageSelectionScreen({
     super.key,
     required this.onLanguageSelected,
+    this.canGoBack = false,
+    this.onBack,
   });
 
   @override
@@ -27,7 +31,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
       duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -61,7 +65,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -113,9 +117,9 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
                             color: isDarkMode ? Colors.white : Colors.blue.shade600,
                           ),
                         ),
-                        
+
                         const SizedBox(height: 40),
-                        
+
                         // Welcome text
                         Text(
                           'Welcome to Routine Flow',
@@ -125,9 +129,9 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        
+
                         const SizedBox(height: 16),
-                        
+
                         Text(
                           'Please select your preferred language',
                           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -135,9 +139,9 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        
+
                         const SizedBox(height: 60),
-                        
+
                         // Language options
                         _buildLanguageOption(
                           flag: '🇺🇸',
@@ -145,18 +149,18 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
                           subtitle: 'Continue in English',
                           onTap: () => _selectLanguage('en', const Locale('en')),
                         ),
-                        
+
                         const SizedBox(height: 20),
-                        
+
                         _buildLanguageOption(
                           flag: '🇮🇱',
                           title: 'עברית',
                           subtitle: 'המשך בעברית',
                           onTap: () => _selectLanguage('he', const Locale('he')),
                         ),
-                        
+
                         const SizedBox(height: 60),
-                        
+
                         // Skip button (uses device language)
                         TextButton(
                           onPressed: () {
@@ -224,8 +228,8 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
                       Text(
                         subtitle,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).brightness == Brightness.dark 
-                            ? Colors.grey.shade300 
+                          color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey.shade300
                             : Colors.grey.shade600,
                         ),
                       ),
@@ -243,4 +247,4 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
       ),
     );
   }
-} 
+}

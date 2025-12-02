@@ -4,10 +4,14 @@ import '../../services/preferences_service.dart';
 
 class TutorialScreen extends StatefulWidget {
   final VoidCallback onCompleted;
+  final bool canGoBack;
+  final VoidCallback? onBack;
 
   const TutorialScreen({
     super.key,
     required this.onCompleted,
+    this.canGoBack = false,
+    this.onBack,
   });
 
   @override
@@ -42,6 +46,9 @@ class _TutorialScreenState extends State<TutorialScreen> {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
+    } else if (widget.canGoBack && widget.onBack != null) {
+      // Go back to previous onboarding step (household setup)
+      widget.onBack!();
     }
   }
 
@@ -54,7 +61,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -116,7 +123,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
                   ],
                 ),
               ),
-              
+
               // Tutorial pages
               Expanded(
                 child: PageView(
@@ -165,38 +172,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
                   ],
                 ),
               ),
-              
-              // Navigation buttons
-              Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    if (_currentPage > 0)
-                                              ElevatedButton(
-                        onPressed: _previousPage,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isDarkMode ? Colors.grey.shade700 : Colors.grey.shade200,
-                          foregroundColor: isDarkMode ? Colors.white : Colors.grey.shade700,
-                        ),
-                        child: Text(l10n.previous),
-                      )
-                    else
-                      const SizedBox(width: 80),
-                    
-                    ElevatedButton(
-                      onPressed: _currentPage == _totalPages - 1 ? _completeTutorial : _nextPage,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                      ),
-                      child: Text(
-                        _currentPage == _totalPages - 1 ? l10n.getStarted : l10n.next,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+
             ],
           ),
         ),
@@ -212,7 +188,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
     required String image,
   }) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -233,9 +209,9 @@ class _TutorialScreenState extends State<TutorialScreen> {
               ),
             ),
           ),
-          
+
           const SizedBox(height: 40),
-          
+
           // Icon
           Container(
             width: 60,
@@ -250,9 +226,9 @@ class _TutorialScreenState extends State<TutorialScreen> {
               color: iconColor,
             ),
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Title
           Text(
             title,
@@ -262,9 +238,9 @@ class _TutorialScreenState extends State<TutorialScreen> {
             ),
             textAlign: TextAlign.center,
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Description
           Text(
             description,
@@ -278,4 +254,4 @@ class _TutorialScreenState extends State<TutorialScreen> {
       ),
     );
   }
-} 
+}

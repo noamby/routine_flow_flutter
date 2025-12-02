@@ -185,11 +185,24 @@ class _OnboardingFlow extends StatefulWidget {
 
 class _OnboardingFlowState extends State<_OnboardingFlow> {
   int _currentStep = 0;
+  final int _totalSteps = 3;
 
   void _nextStep() {
-    setState(() {
-      _currentStep++;
-    });
+    if (_currentStep < _totalSteps - 1) {
+      setState(() {
+        _currentStep++;
+      });
+    } else {
+      widget.onCompleted();
+    }
+  }
+
+  void _previousStep() {
+    if (_currentStep > 0) {
+      setState(() {
+        _currentStep--;
+      });
+    }
   }
 
   @override
@@ -201,14 +214,20 @@ class _OnboardingFlowState extends State<_OnboardingFlow> {
             widget.onLocaleChange(locale);
             _nextStep();
           },
+          canGoBack: false,
+          onBack: null,
         );
       case 1:
         return HouseholdSetupScreen(
           onCompleted: _nextStep,
+          canGoBack: true,
+          onBack: _previousStep,
         );
       case 2:
         return TutorialScreen(
           onCompleted: widget.onCompleted,
+          canGoBack: true,
+          onBack: _previousStep,
         );
       default:
         return LanguageSelectionScreen(
@@ -216,6 +235,8 @@ class _OnboardingFlowState extends State<_OnboardingFlow> {
             widget.onLocaleChange(locale);
             _nextStep();
           },
+          canGoBack: false,
+          onBack: null,
         );
     }
   }

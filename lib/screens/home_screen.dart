@@ -87,7 +87,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     // Initialize member names from saved preferences or use defaults
     _memberNames = widget.initialMembers ?? ['Assaf', 'Ofir'];
     _tabController = TabController(length: _memberNames.length, vsync: this);
-    _loadMemberAvatars();
   }
 
   @override
@@ -97,7 +96,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _loadMemberAvatars() async {
+    // Load from both old format (for backwards compatibility) and new PreferencesService format
     final prefs = await SharedPreferences.getInstance();
+
+    // First try old format
     final imagesJson = prefs.getString('member_images');
     if (imagesJson != null) {
       final loadedImages = Map<String, String>.from(
@@ -119,6 +121,37 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         }
       });
     }
+
+    // Now load from PreferencesService format (from onboarding)
+    for (int i = 0; i < _memberNames.length; i++) {
+      final memberId = 'member_$i';
+      final columnId = columns.isNotEmpty && i < columns.length ? columns[i].id : memberId;
+
+      // Load icon
+      final icon = await PreferencesService.getMemberIcon(memberId);
+      if (icon != null) {
+        setState(() {
+          _memberIcons[columnId] = icon;
+        });
+      }
+
+      // Load image bytes
+      final imageBytes = await PreferencesService.getMemberImageBytes(memberId);
+      if (imageBytes != null) {
+        setState(() {
+          _memberImageBytes[columnId] = imageBytes;
+          _memberImages[columnId] = base64Encode(imageBytes);
+        });
+      }
+
+      // Load color
+      final color = await PreferencesService.getMemberColor(memberId);
+      if (color != null && i < columns.length) {
+        setState(() {
+          columns[i].color = color;
+        });
+      }
+    }
   }
 
   Future<void> _saveMemberAvatars() async {
@@ -133,6 +166,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     if (!_isInitialized) {
       _initializeData();
+      _loadMemberAvatars(); // Load saved avatars after columns are initialized
       _currentLocale = currentLocale;
       _isInitialized = true;
     } else if (_currentLocale != currentLocale) {
