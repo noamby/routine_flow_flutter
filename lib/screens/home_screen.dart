@@ -56,6 +56,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // Global key for scaffold to access drawer
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  // Tab controller for mobile view
+  late TabController _tabController;
+
   late List<ColumnData> columns;
   String _currentRoutine = 'Morning Routine';
   late Map<String, List<Task>> routines;
@@ -65,6 +68,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   bool _isChildMode = false;
   bool _isLoadingRoutine = false;
+  bool _forceTabView = false; // Force tab view even on wide screens
 
   bool _isInitialized = false;
   Locale? _currentLocale;
@@ -74,7 +78,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     super.initState();
     // Initialize member names from saved preferences or use defaults
     _memberNames = widget.initialMembers ?? ['Assaf', 'Ofir'];
+    _tabController = TabController(length: _memberNames.length, vsync: this);
     _loadMemberAvatars();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadMemberAvatars() async {
@@ -170,6 +181,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _memberNames = newNames;
       final l10n = AppLocalizations.of(context)!;
       columns = RoutineService.initializeColumns(_memberNames, l10n);
+      // Recreate tab controller with new length
+      _tabController.dispose();
+      _tabController = TabController(length: _memberNames.length, vsync: this);
     });
   }
 
@@ -699,6 +713,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     widget.onDarkModeChange(isDark);
   }
 
+  void _toggleViewMode() {
+    setState(() {
+      _forceTabView = !_forceTabView;
+    });
+  }
+
   void _toggleChildMode() {
     final l10n = AppLocalizations.of(context)!;
     if (_isChildMode) {
@@ -843,6 +863,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         tooltip: isDarkMode ? l10n.lightMode : l10n.darkMode,
                       ),
                       const SizedBox(width: 8),
+                      // View mode toggle - tabs vs columns
+                      _buildActionButton(
+                        icon: _forceTabView ? Icons.view_column : Icons.view_carousel,
+                        color: Colors.teal,
+                        onPressed: _toggleViewMode,
+                        tooltip: _forceTabView ? 'Column View' : 'Tab View',
+                      ),
+                      const SizedBox(width: 8),
                       _buildActionButton(
                         icon: _isChildMode ? Icons.child_care : Icons.child_care_outlined,
                         color: _isChildMode ? Colors.orange : Colors.purple,
@@ -853,18 +881,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ),
 
-                // Main content
+                // Main content - responsive layout
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Row(
-                      children: columns.map((column) => Expanded(
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 4.0),
-                          child: _buildEnhancedTaskColumn(column),
-                        ),
-                      )).toList(),
-                    ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      // Use tabs for narrow screens (mobile) or if forced, columns otherwise
+                      final isMobile = constraints.maxWidth < 600;
+                      final useTabView = isMobile || _forceTabView;
+
+                      if (useTabView) {
+                        return _buildMobileTabView();
+                      } else {
+                        return _buildDesktopColumnView();
+                      }
+                    },
                   ),
                 ),
               ],
@@ -908,6 +938,66 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           onPressed: onPressed,
         ),
+      ),
+    );
+  }
+
+  // Mobile view with tabs
+  Widget _buildMobileTabView() {
+    return Column(
+      children: [
+        // Tab bar
+        TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabs: columns.map((column) {
+            final memberName = _getMemberNameFromColumn(column);
+            final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+            return Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Avatar in tab
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: _buildAvatarWidget(column, isDarkMode),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(memberName),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+        // Tab content
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: columns.map((column) {
+              return Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: _buildEnhancedTaskColumn(column),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Desktop view with columns
+  Widget _buildDesktopColumnView() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Row(
+        children: columns.map((column) => Expanded(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: _buildEnhancedTaskColumn(column),
+          ),
+        )).toList(),
       ),
     );
   }
@@ -1070,6 +1160,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         );
       },
     );
+  }
+
+  // Get member name from column (remove the suffix)
+  String _getMemberNameFromColumn(ColumnData column) {
+    final l10n = AppLocalizations.of(context)!;
+    // Remove the tasks suffix to get the member name
+    return column.name.replaceAll(l10n.tasksSuffix, '').trim();
   }
 
   Widget _buildAvatarWidget(ColumnData column, bool isDarkMode) {
