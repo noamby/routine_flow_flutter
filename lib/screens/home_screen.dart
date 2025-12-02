@@ -17,6 +17,11 @@ import '../widgets/task_column.dart';
 import '../widgets/animation_picker_dialog.dart';
 import '../widgets/add_task_dialog.dart';
 import '../widgets/light_switch_widget.dart';
+import '../widgets/home/routine_tab_view.dart';
+import '../widgets/home/routine_column_view.dart';
+import '../widgets/home/member_avatar_widget.dart';
+import '../widgets/home/routine_column_header.dart';
+import '../widgets/home/enhanced_task_card.dart';
 import '../services/routine_service.dart';
 import '../services/preferences_service.dart';
 import 'add_routine_screen.dart';
@@ -535,7 +540,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           opacity: animation.drive(
             Tween<double>(begin: 1.0, end: 0.0).chain(CurveTween(curve: Curves.easeIn)),
           ),
-          child: _buildEnhancedTaskCard(task, columnId, index),
+          child: EnhancedTaskCard(
+            task: task,
+            columnId: columnId,
+            index: index,
+            isChildMode: _isChildMode,
+            animationType: routineAnimations[_currentRoutine]?.type ?? RoutineAnimation.slide,
+            onToggle: () => _toggleTask(columnId, index),
+          ),
         ),
       ),
     );
@@ -560,7 +572,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           child: FadeTransition(
             opacity: animation,
-            child: _buildEnhancedTaskCard(task, columnId, index),
+            child: EnhancedTaskCard(
+              task: task,
+              columnId: columnId,
+              index: index,
+              isChildMode: _isChildMode,
+              animationType: routineAnimations[_currentRoutine]?.type ?? RoutineAnimation.slide,
+              onToggle: () => _toggleTask(columnId, index),
+            ),
           ),
         ),
       );
@@ -944,61 +963,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // Mobile view with tabs
   Widget _buildMobileTabView() {
-    return Column(
-      children: [
-        // Tab bar
-        TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabs: columns.map((column) {
-            final memberName = _getMemberNameFromColumn(column);
-            final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-            return Tab(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Avatar in tab
-                  SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: _buildAvatarWidget(column, isDarkMode),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(memberName),
-                ],
-              ),
-            );
-          }).toList(),
-        ),
-        // Tab content
-        Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: columns.map((column) {
-              return Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: _buildEnhancedTaskColumn(column),
-              );
-            }).toList(),
-          ),
-        ),
-      ],
+    return RoutineTabView(
+      tabController: _tabController,
+      columns: columns,
+      buildColumn: _buildEnhancedTaskColumn,
+      buildAvatar: _buildAvatarWidget,
+      getMemberName: _getMemberNameFromColumn,
     );
   }
 
   // Desktop view with columns
   Widget _buildDesktopColumnView() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Row(
-        children: columns.map((column) => Expanded(
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 4.0),
-            child: _buildEnhancedTaskColumn(column),
-          ),
-        )).toList(),
-      ),
+    return RoutineColumnView(
+      columns: columns,
+      buildColumn: _buildEnhancedTaskColumn,
     );
   }
 
@@ -1039,87 +1017,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: Column(
                   children: [
                     // Column header
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: isDarkMode
-                            ? column.color.withOpacity(0.3)
-                            : column.color.withOpacity(0.1),
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(20),
-                          topRight: Radius.circular(20),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          // Avatar - clickable to change icon/image
-                          if (!_isChildMode)
-                            GestureDetector(
-                              onTap: () => _showIconPicker(column.id),
-                              child: Stack(
-                                children: [
-                                  _buildAvatarWidget(column, isDarkMode),
-                                  Positioned(
-                                    right: 0,
-                                    bottom: 0,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(3),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: isDarkMode ? Colors.grey.shade800 : Colors.white,
-                                          width: 1.5,
-                                        ),
-                                      ),
-                                      child: const Icon(
-                                        Icons.edit,
-                                        size: 10,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          else
-                            _buildAvatarWidget(column, isDarkMode),
-                          const SizedBox(width: 12),
-                          // Column title
-                          Expanded(
-                            child: Text(
-                              column.name,
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: isDarkMode ? Colors.white : Colors.grey.shade800,
-                              ),
-                            ),
-                          ),
-                          // Action buttons
-                          if (!_isChildMode) ...[
-                            _buildColumnActionButton(
-                              icon: Icons.palette,
-                              color: column.color,
-                              onPressed: () => _showColorPicker(column.id),
-                              tooltip: l10n.editColorTooltip,
-                            ),
-                            const SizedBox(width: 4),
-                            _buildColumnActionButton(
-                              icon: Icons.edit,
-                              color: Colors.blue,
-                              onPressed: () => _showEditMemberNameDialog(column.id),
-                              tooltip: l10n.editNameTooltip,
-                            ),
-                            const SizedBox(width: 4),
-                            _buildColumnActionButton(
-                              icon: Icons.add,
-                              color: Colors.green,
-                              onPressed: () => _addTask(column.id),
-                              tooltip: l10n.addTaskTooltip,
-                            ),
-                          ],
-                        ],
-                      ),
+                    RoutineColumnHeader(
+                      column: column,
+                      isDarkMode: isDarkMode,
+                      isChildMode: _isChildMode,
+                      memberIcons: _memberIcons,
+                      memberImages: _memberImages,
+                      memberImageBytes: _memberImageBytes,
+                      onAvatarTap: () => _showIconPicker(column.id),
+                      onColorTap: () => _showColorPicker(column.id),
+                      onEditNameTap: () => _showEditMemberNameDialog(column.id),
+                      onAddTaskTap: () => _addTask(column.id),
                     ),
 
                     // Tasks list
@@ -1147,7 +1055,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                     },
                                     itemBuilder: (context, index) {
                                       final task = column.tasks[index];
-                                      return _buildEnhancedTaskCard(task, column.id, index);
+                                      return EnhancedTaskCard(
+                                        key: ValueKey('${column.id}_$index'),
+                                        task: task,
+                                        columnId: column.id,
+                                        index: index,
+                                        isChildMode: _isChildMode,
+                                        animationType: routineAnimations[_currentRoutine]?.type ?? RoutineAnimation.slide,
+                                        onToggle: () => _toggleTask(column.id, index),
+                                      );
                                     },
                                   ),
                                 ),
@@ -1170,185 +1086,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildAvatarWidget(ColumnData column, bool isDarkMode) {
-    // Check if custom image exists
-    if (kIsWeb && _memberImageBytes.containsKey(column.id)) {
-      // For web: use bytes
-      return CircleAvatar(
-        backgroundColor: column.color.withOpacity(0.2),
-        radius: 20,
-        backgroundImage: MemoryImage(_memberImageBytes[column.id]!),
-      );
-    } else if (!kIsWeb && _memberImages.containsKey(column.id)) {
-      // For mobile: use file path
-      return CircleAvatar(
-        backgroundColor: column.color.withOpacity(0.2),
-        radius: 20,
-        backgroundImage: FileImage(File(_memberImages[column.id]!)),
-      );
-    }
-
-    // Otherwise show icon
-    return CircleAvatar(
-      backgroundColor: column.color.withOpacity(0.2),
-      radius: 20,
-      child: Icon(
-        _memberIcons[column.id] ?? Icons.person,
-        color: isDarkMode ? Colors.white : column.color,
-        size: 24,
-      ),
+    return MemberAvatarWidget(
+      column: column,
+      isDarkMode: isDarkMode,
+      memberIcons: _memberIcons,
+      memberImages: _memberImages,
+      memberImageBytes: _memberImageBytes,
+      isChildMode: _isChildMode,
+      onTap: () => _showIconPicker(column.id),
+      showEditBadge: false, // We'll add the badge in the column header
     );
   }
 
-  Widget _buildColumnActionButton({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onPressed,
-    required String tooltip,
-  }) {
-    return Tooltip(
-      message: tooltip,
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          shape: BoxShape.circle,
-        ),
-        child: IconButton(
-          icon: Icon(
-            icon,
-            size: 16,
-            color: color,
-          ),
-          onPressed: onPressed,
-          padding: EdgeInsets.zero,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEnhancedTaskCard(Task task, String columnId, int index) {
-    final animationType = routineAnimations[_currentRoutine]?.type ?? RoutineAnimation.slide;
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    return TweenAnimationBuilder<double>(
-      key: ValueKey('${columnId}_$index'),
-      duration: Duration(milliseconds: 500 + (index * 100)),
-      tween: Tween<double>(begin: 0.0, end: 1.0),
-      builder: (context, animationValue, child) {
-        Widget animatedChild = Container(
-          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-          child: Card(
-            elevation: task.isDone ? 1 : 3,
-            color: isDarkMode
-                ? (task.isDone ? Colors.grey.shade800 : Colors.grey.shade700)
-                : (task.isDone ? Colors.grey.shade100 : Colors.white),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: InkWell(
-              onTap: () => _toggleTask(columnId, index),
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Custom checkbox
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: task.isDone ? Colors.green : Colors.grey.shade400,
-                          width: 2,
-                        ),
-                        color: task.isDone ? Colors.green : Colors.transparent,
-                      ),
-                      child: task.isDone
-                          ? const Icon(
-                              Icons.check,
-                              size: 16,
-                              color: Colors.white,
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 14),
-                    // Task text
-                    Expanded(
-                      child: Text(
-                        task.text,
-                        style: TextStyle(
-                          decoration: task.isDone ? TextDecoration.lineThrough : null,
-                          color: task.isDone
-                              ? (isDarkMode ? Colors.grey.shade400 : Colors.grey.shade500)
-                              : (isDarkMode ? Colors.white : Colors.grey.shade800),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    // Drag handle
-                    if (!_isChildMode && !task.isDone) ...[
-                      const SizedBox(width: 8),
-                      ReorderableDragStartListener(
-                        index: index,
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: isDarkMode ? Colors.grey.shade600 : Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            Icons.drag_handle,
-                            color: isDarkMode ? Colors.grey.shade300 : Colors.grey.shade400,
-                            size: 18,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-
-        // Apply animation based on type
-        switch (animationType) {
-          case RoutineAnimation.slide:
-            return Transform.translate(
-              offset: Offset((1.0 - animationValue) * 200, 0),
-              child: Opacity(opacity: animationValue, child: animatedChild),
-            );
-          case RoutineAnimation.fade:
-            return Opacity(opacity: animationValue, child: animatedChild);
-          case RoutineAnimation.scale:
-            return Transform.scale(
-              scale: 0.5 + (animationValue * 0.5),
-              child: Opacity(opacity: animationValue, child: animatedChild),
-            );
-          case RoutineAnimation.bounce:
-            final bounceValue = animationValue < 0.5
-                ? 4 * animationValue * animationValue * animationValue
-                : 1 - 4 * (1 - animationValue) * (1 - animationValue) * (1 - animationValue);
-            return Transform.translate(
-              offset: Offset(0, (1.0 - bounceValue) * 100),
-              child: Opacity(opacity: animationValue, child: animatedChild),
-            );
-          case RoutineAnimation.rotate:
-            return Transform.rotate(
-              angle: (1.0 - animationValue) * 0.5,
-              child: Opacity(opacity: animationValue, child: animatedChild),
-            );
-        }
-      },
-    );
-  }
 
   Widget _buildEmptyState() {
     return Center(
