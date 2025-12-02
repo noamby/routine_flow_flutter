@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/task.dart';
 import '../models/column_data.dart';
 import '../utils/routine_animation.dart';
@@ -11,6 +18,7 @@ import '../widgets/animation_picker_dialog.dart';
 import '../widgets/add_task_dialog.dart';
 import '../widgets/light_switch_widget.dart';
 import '../services/routine_service.dart';
+import '../services/preferences_service.dart';
 import 'add_routine_screen.dart';
 import 'edit_routine_screen.dart';
 
@@ -37,6 +45,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // Member icons - stores the selected icon for each column
   Map<String, IconData> _memberIcons = {};
 
+  // Member custom images - stores custom image paths (mobile) or base64 (web)
+  Map<String, String> _memberImages = {};
+
+  // Member image bytes for web rendering
+  Map<String, Uint8List> _memberImageBytes = {};
+
+  final ImagePicker _picker = ImagePicker();
+
   // Global key for scaffold to access drawer
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -57,6 +73,37 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     super.initState();
     // Initialize member names from saved preferences or use defaults
     _memberNames = widget.initialMembers ?? ['Assaf', 'Ofir'];
+    _loadMemberAvatars();
+  }
+
+  Future<void> _loadMemberAvatars() async {
+    final prefs = await SharedPreferences.getInstance();
+    final imagesJson = prefs.getString('member_images');
+    if (imagesJson != null) {
+      final loadedImages = Map<String, String>.from(
+        (jsonDecode(imagesJson) as Map).cast<String, String>()
+      );
+
+      setState(() {
+        _memberImages = loadedImages;
+
+        // For web, decode base64 strings back to bytes
+        if (kIsWeb) {
+          for (var entry in loadedImages.entries) {
+            try {
+              _memberImageBytes[entry.key] = base64Decode(entry.value);
+            } catch (e) {
+              print('Error decoding image for ${entry.key}: $e');
+            }
+          }
+        }
+      });
+    }
+  }
+
+  Future<void> _saveMemberAvatars() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('member_images', jsonEncode(_memberImages));
   }
 
   @override
@@ -245,6 +292,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ),
         actions: [
+          ElevatedButton.icon(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _pickAndCropImage(columnId);
+            },
+            icon: const Icon(Icons.add_photo_alternate),
+            label: const Text('Upload Image'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
@@ -253,6 +308,72 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ),
     );
   }
+
+  Future<void> _pickAndCropImage(String columnId) async {
+    try {
+      print('Starting image picker...');
+
+      // Pick image from gallery
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 512,
+        maxHeight: 512,
+      );
+
+      print('Image picked: ${image?.path}');
+
+      if (image == null) {
+        print('No image selected');
+        return;
+      }
+
+      // Read image bytes
+      final bytes = await image.readAsBytes();
+      print('Image bytes loaded: ${bytes.length}');
+
+      if (kIsWeb) {
+        // For web: store bytes in memory and base64 in preferences
+        setState(() {
+          _memberImageBytes[columnId] = bytes;
+          _memberImages[columnId] = base64Encode(bytes);
+          _memberIcons.remove(columnId);
+        });
+      } else {
+        // For mobile: save to file system
+        final directory = await getApplicationDocumentsDirectory();
+        final fileName = 'avatar_${columnId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final savePath = '${directory.path}/$fileName';
+        await File(savePath).writeAsBytes(bytes);
+
+        setState(() {
+          _memberImages[columnId] = savePath;
+          _memberIcons.remove(columnId);
+        });
+      }
+
+      await _saveMemberAvatars();
+
+      print('Avatar updated for column: $columnId');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Avatar updated successfully!'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error uploading image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error uploading image: $e')),
+        );
+      }
+    }
+  }
+
 
   void _showManageHouseholdDialog() {
     showDialog(
@@ -824,21 +945,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                       child: Row(
                         children: [
-                          // Avatar - clickable to change icon
+                          // Avatar - clickable to change icon/image
                           if (!_isChildMode)
                             GestureDetector(
                               onTap: () => _showIconPicker(column.id),
                               child: Stack(
                                 children: [
-                                  CircleAvatar(
-                                    backgroundColor: column.color.withOpacity(0.2),
-                                    radius: 20,
-                                    child: Icon(
-                                      _memberIcons[column.id] ?? Icons.person,
-                                      color: isDarkMode ? Colors.white : column.color,
-                                      size: 24,
-                                    ),
-                                  ),
+                                  _buildAvatarWidget(column, isDarkMode),
                                   Positioned(
                                     right: 0,
                                     bottom: 0,
@@ -863,15 +976,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               ),
                             )
                           else
-                            CircleAvatar(
-                              backgroundColor: column.color.withOpacity(0.2),
-                              radius: 20,
-                              child: Icon(
-                                _memberIcons[column.id] ?? Icons.person,
-                                color: isDarkMode ? Colors.white : column.color,
-                                size: 24,
-                              ),
-                            ),
+                            _buildAvatarWidget(column, isDarkMode),
                           const SizedBox(width: 12),
                           // Column title
                           Expanded(
@@ -947,6 +1052,36 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildAvatarWidget(ColumnData column, bool isDarkMode) {
+    // Check if custom image exists
+    if (kIsWeb && _memberImageBytes.containsKey(column.id)) {
+      // For web: use bytes
+      return CircleAvatar(
+        backgroundColor: column.color.withOpacity(0.2),
+        radius: 20,
+        backgroundImage: MemoryImage(_memberImageBytes[column.id]!),
+      );
+    } else if (!kIsWeb && _memberImages.containsKey(column.id)) {
+      // For mobile: use file path
+      return CircleAvatar(
+        backgroundColor: column.color.withOpacity(0.2),
+        radius: 20,
+        backgroundImage: FileImage(File(_memberImages[column.id]!)),
+      );
+    }
+
+    // Otherwise show icon
+    return CircleAvatar(
+      backgroundColor: column.color.withOpacity(0.2),
+      radius: 20,
+      child: Icon(
+        _memberIcons[column.id] ?? Icons.person,
+        color: isDarkMode ? Colors.white : column.color,
+        size: 24,
+      ),
     );
   }
 
