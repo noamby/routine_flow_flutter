@@ -25,6 +25,7 @@ import '../widgets/home/enhanced_task_card.dart';
 import '../widgets/dialogs/avatar_icon_picker_dialog.dart';
 import '../services/routine_service.dart';
 import '../services/preferences_service.dart';
+import '../services/kiosk_service.dart';
 import 'add_routine_screen.dart';
 import 'edit_routine_screen.dart';
 import 'manage_household_screen.dart';
@@ -643,7 +644,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     });
   }
 
-  void _toggleChildMode() {
+  void _toggleChildMode() async {
     final l10n = AppLocalizations.of(context)!;
     if (_isChildMode) {
       // Generate a random number between 1 and 10
@@ -670,9 +671,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   border: const OutlineInputBorder(),
                   hintText: l10n.enterNumber,
                 ),
-                onSubmitted: (value) {
+                onSubmitted: (value) async {
                   if (int.tryParse(value) == random) {
                     Navigator.pop(context);
+
+                    // Exit kiosk mode on Android
+                    await KioskService.stopScreenPinning();
+                    await KioskService.exitImmersiveMode();
+
                     setState(() {
                       _isChildMode = false;
                     });
@@ -697,9 +703,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
       );
     } else {
+      // Enter child mode
       setState(() {
         _isChildMode = true;
       });
+
+      // Enter kiosk mode on Android
+      if (KioskService.isAndroid) {
+        await KioskService.enterImmersiveMode();
+        await KioskService.startScreenPinning();
+
+        // Show a brief message about screen pinning
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.childModeLocked ?? 'Child mode activated. Screen is locked.'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -710,7 +734,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final l10n = AppLocalizations.of(context)!;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
+    // Wrap with PopScope to prevent back button when in child mode
+    return PopScope(
+      canPop: !_isChildMode,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _isChildMode) {
+          // Show a message that child mode is active
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.childModeActive ?? 'Child mode is active. Use the exit button to leave.'),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      },
+      child: Scaffold(
         key: _scaffoldKey,
         body: Container(
           decoration: BoxDecoration(
@@ -818,7 +857,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           onLanguageChanged: _changeLanguage,
           onManageHousehold: _openManageHouseholdScreen,
         ),
-      );
+      ),
+    );
   }
 
   Widget _buildActionButton({

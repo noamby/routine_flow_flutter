@@ -90,5 +90,7 @@
   "viewMode": "מצב תצוגה",
   "tabView": "תצוגת כרטיסיות",
   "columnView": "תצוגת עמודות",
-  "userPreferences": "העדפות משתמש"
+  "userPreferences": "העדפות משתמש",
+  "childModeLocked": "מצב ילדים הופעל. המסך נעול.",
+  "childModeActive": "מצב ילדים פעיל. השתמש בכפתור היציאה כדי לצאת."
 }

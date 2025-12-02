@@ -90,5 +90,7 @@
   "viewMode": "View Mode",
   "tabView": "Tab View",
   "columnView": "Column View",
-  "userPreferences": "User Preferences"
+  "userPreferences": "User Preferences",
+  "childModeLocked": "Child mode activated. Screen is locked.",
+  "childModeActive": "Child mode is active. Use the exit button to leave."
 }
