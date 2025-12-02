@@ -98,13 +98,14 @@ class RoutineColumnHeader extends StatelessWidget {
             ),
           ),
           // Action buttons
+          // Color picker is always available (even in child mode for fun!)
+          _buildColumnActionButton(
+            icon: Icons.palette,
+            color: column.color,
+            onPressed: onColorTap,
+            tooltip: l10n.editColorTooltip,
+          ),
           if (!isChildMode) ...[
-            _buildColumnActionButton(
-              icon: Icons.palette,
-              color: column.color,
-              onPressed: onColorTap,
-              tooltip: l10n.editColorTooltip,
-            ),
             const SizedBox(width: 4),
             _buildColumnActionButton(
               icon: Icons.edit,

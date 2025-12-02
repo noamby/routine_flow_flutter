@@ -852,14 +852,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           ),
                         ),
                       ),
-                      // Action buttons - only dark mode and child mode remain in header
-                      _buildActionButton(
-                        icon: isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                        color: Colors.amber,
-                        onPressed: () => _toggleDarkMode(!isDarkMode),
-                        tooltip: isDarkMode ? l10n.lightMode : l10n.darkMode,
-                      ),
-                      const SizedBox(width: 8),
+                      // Action button - only child mode remains in header
                       _buildActionButton(
                         icon: _isChildMode ? Icons.child_care : Icons.child_care_outlined,
                         color: _isChildMode ? Colors.orange : Colors.purple,
@@ -907,6 +900,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           onLanguageChanged: _changeLanguage,
           onManageHousehold: _openManageHouseholdScreen,
           onWatchTutorial: _openTutorial,
+          isDarkMode: isDarkMode,
+          onToggleDarkMode: () => _toggleDarkMode(!isDarkMode),
         ),
       ),
     );

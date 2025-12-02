@@ -20,6 +20,8 @@ class RoutineDrawer extends StatelessWidget {
   final Function(String) onLanguageChanged;
   final VoidCallback onManageHousehold;
   final VoidCallback onWatchTutorial;
+  final bool isDarkMode;
+  final VoidCallback onToggleDarkMode;
 
   const RoutineDrawer({
     super.key,
@@ -38,12 +40,13 @@ class RoutineDrawer extends StatelessWidget {
     required this.onLanguageChanged,
     required this.onManageHousehold,
     required this.onWatchTutorial,
+    required this.isDarkMode,
+    required this.onToggleDarkMode,
   });
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Drawer(
       child: Column(
@@ -152,6 +155,30 @@ class RoutineDrawer extends StatelessWidget {
                   ),
                 ),
 
+                // Dark Mode Toggle with Sun/Moon
+                ListTile(
+                  leading: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    transitionBuilder: (child, animation) {
+                      return RotationTransition(
+                        turns: animation,
+                        child: ScaleTransition(scale: animation, child: child),
+                      );
+                    },
+                    child: Icon(
+                      isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                      key: ValueKey(isDarkMode),
+                      color: isDarkMode ? Colors.indigo.shade300 : Colors.amber,
+                      size: 26,
+                    ),
+                  ),
+                  title: Text(isDarkMode ? l10n.darkMode : l10n.lightMode),
+                  trailing: _SunMoonToggle(
+                    isDarkMode: isDarkMode,
+                    onToggle: onToggleDarkMode,
+                  ),
+                ),
+
                 // View Mode Toggle
                 ListTile(
                   leading: Icon(forceTabView ? Icons.view_carousel : Icons.view_column),
@@ -234,6 +261,157 @@ class RoutineDrawer extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A cool animated sun/moon toggle switch
+class _SunMoonToggle extends StatelessWidget {
+  final bool isDarkMode;
+  final VoidCallback onToggle;
+
+  const _SunMoonToggle({
+    required this.isDarkMode,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onToggle,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        width: 70,
+        height: 36,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: LinearGradient(
+            colors: isDarkMode
+                ? [Colors.indigo.shade900, Colors.purple.shade900]
+                : [Colors.orange.shade300, Colors.amber.shade200],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isDarkMode
+                  ? Colors.indigo.withOpacity(0.4)
+                  : Colors.amber.withOpacity(0.4),
+              blurRadius: 8,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            // Stars (visible in dark mode)
+            if (isDarkMode) ...[
+              Positioned(
+                left: 10,
+                top: 8,
+                child: Icon(Icons.star, size: 6, color: Colors.white.withOpacity(0.7)),
+              ),
+              Positioned(
+                left: 18,
+                top: 14,
+                child: Icon(Icons.star, size: 4, color: Colors.white.withOpacity(0.5)),
+              ),
+              Positioned(
+                left: 8,
+                top: 20,
+                child: Icon(Icons.star, size: 5, color: Colors.white.withOpacity(0.6)),
+              ),
+            ],
+            // Clouds (visible in light mode)
+            if (!isDarkMode) ...[
+              Positioned(
+                right: 12,
+                top: 10,
+                child: Container(
+                  width: 12,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 8,
+                bottom: 10,
+                child: Container(
+                  width: 8,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            ],
+            // Sun/Moon circle
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              left: isDarkMode ? 38 : 4,
+              top: 4,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isDarkMode ? Colors.grey.shade300 : Colors.amber.shade100,
+                  boxShadow: [
+                    BoxShadow(
+                      color: isDarkMode
+                          ? Colors.white.withOpacity(0.3)
+                          : Colors.orange.withOpacity(0.5),
+                      blurRadius: 8,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: isDarkMode
+                    ? Stack(
+                        children: [
+                          // Moon craters
+                          Positioned(
+                            left: 6,
+                            top: 8,
+                            child: Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.grey.shade400.withOpacity(0.5),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            right: 8,
+                            top: 14,
+                            child: Container(
+                              width: 4,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.grey.shade400.withOpacity(0.4),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Center(
+                        child: Icon(
+                          Icons.wb_sunny,
+                          size: 18,
+                          color: Colors.orange.shade600,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
