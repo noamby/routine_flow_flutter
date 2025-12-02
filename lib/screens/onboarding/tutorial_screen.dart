@@ -6,12 +6,14 @@ class TutorialScreen extends StatefulWidget {
   final VoidCallback onCompleted;
   final bool canGoBack;
   final VoidCallback? onBack;
+  final bool isFromMenu; // When opened from menu, don't save onboarding status
 
   const TutorialScreen({
     super.key,
     required this.onCompleted,
     this.canGoBack = false,
     this.onBack,
+    this.isFromMenu = false,
   });
 
   @override
@@ -21,7 +23,7 @@ class TutorialScreen extends StatefulWidget {
 class _TutorialScreenState extends State<TutorialScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final int _totalPages = 5;
+  final int _totalPages = 7;
 
   @override
   void dispose() {
@@ -53,7 +55,10 @@ class _TutorialScreenState extends State<TutorialScreen> {
   }
 
   Future<void> _completeTutorial() async {
-    await PreferencesService.setOnboardingCompleted(true);
+    // Only mark onboarding as completed if this is the actual onboarding flow
+    if (!widget.isFromMenu) {
+      await PreferencesService.setOnboardingCompleted(true);
+    }
     widget.onCompleted();
   }
 
@@ -88,17 +93,28 @@ class _TutorialScreenState extends State<TutorialScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    TextButton(
-                      onPressed: _completeTutorial,
-                      child: Text(
-                        l10n.skip,
-                        style: TextStyle(color: isDarkMode ? Colors.grey.shade300 : Colors.grey.shade600),
+                    // Back/Skip button
+                    if (_currentPage > 0 || widget.canGoBack)
+                      TextButton(
+                        onPressed: _previousPage,
+                        child: Text(
+                          l10n.previous,
+                          style: TextStyle(color: isDarkMode ? Colors.grey.shade300 : Colors.grey.shade600),
+                        ),
+                      )
+                    else
+                      TextButton(
+                        onPressed: _completeTutorial,
+                        child: Text(
+                          l10n.skip,
+                          style: TextStyle(color: isDarkMode ? Colors.grey.shade300 : Colors.grey.shade600),
+                        ),
                       ),
-                    ),
+                    // Progress dots
                     Row(
                       children: List.generate(_totalPages, (index) {
                         return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          margin: const EdgeInsets.symmetric(horizontal: 3),
                           width: 8,
                           height: 8,
                           decoration: BoxDecoration(
@@ -110,6 +126,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
                         );
                       }),
                     ),
+                    // Next/Done button
                     TextButton(
                       onPressed: _currentPage == _totalPages - 1 ? _completeTutorial : _nextPage,
                       child: Text(
@@ -134,6 +151,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
                     });
                   },
                   children: [
+                    // Page 1: Welcome
                     _buildTutorialPage(
                       icon: Icons.home,
                       iconColor: Colors.blue,
@@ -141,20 +159,23 @@ class _TutorialScreenState extends State<TutorialScreen> {
                       description: l10n.welcomeDescription,
                       image: '🏠',
                     ),
+                    // Page 2: Morning & Evening Routines
                     _buildTutorialPage(
                       icon: Icons.schedule,
                       iconColor: Colors.orange,
                       title: l10n.morningEveningRoutines,
                       description: l10n.morningEveningDescription,
-                      image: '⏰',
+                      image: '🌅🌙',
                     ),
+                    // Page 3: Family Members & Avatars
                     _buildTutorialPage(
-                      icon: Icons.family_restroom,
+                      icon: Icons.face,
                       iconColor: Colors.green,
-                      title: l10n.familyMembersTitle,
-                      description: l10n.familyMembersDescription,
-                      image: '👨‍👩‍👧‍👦',
+                      title: l10n.tutorialAvatarsTitle,
+                      description: l10n.tutorialAvatarsDescription,
+                      image: '👤📸',
                     ),
+                    // Page 4: Track Progress
                     _buildTutorialPage(
                       icon: Icons.check_circle,
                       iconColor: Colors.purple,
@@ -162,12 +183,29 @@ class _TutorialScreenState extends State<TutorialScreen> {
                       description: l10n.trackProgressDescription,
                       image: '✅',
                     ),
+                    // Page 5: Custom Routines
+                    _buildTutorialPage(
+                      icon: Icons.add_circle,
+                      iconColor: Colors.teal,
+                      title: l10n.tutorialCustomRoutinesTitle,
+                      description: l10n.tutorialCustomRoutinesDescription,
+                      image: '➕✨',
+                    ),
+                    // Page 6: View Modes & Dark Mode
+                    _buildTutorialPage(
+                      icon: Icons.view_module,
+                      iconColor: Colors.indigo,
+                      title: l10n.tutorialViewModesTitle,
+                      description: l10n.tutorialViewModesDescription,
+                      image: '📱💻',
+                    ),
+                    // Page 7: Child Mode
                     _buildTutorialPage(
                       icon: Icons.child_care,
                       iconColor: Colors.pink,
                       title: l10n.childMode,
                       description: l10n.childModeDescription,
-                      image: '🧒',
+                      image: '🧒🔒',
                     ),
                   ],
                 ),
@@ -196,23 +234,30 @@ class _TutorialScreenState extends State<TutorialScreen> {
         children: [
           // Large emoji/image
           Container(
-            width: 120,
-            height: 120,
+            width: 140,
+            height: 140,
             decoration: BoxDecoration(
               color: isDarkMode ? iconColor.withOpacity(0.2) : iconColor.withOpacity(0.1),
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: iconColor.withOpacity(0.2),
+                  blurRadius: 20,
+                  spreadRadius: 5,
+                ),
+              ],
             ),
             child: Center(
               child: Text(
                 image,
-                style: const TextStyle(fontSize: 60),
+                style: const TextStyle(fontSize: 50),
               ),
             ),
           ),
 
           const SizedBox(height: 40),
 
-          // Icon
+          // Icon badge
           Container(
             width: 60,
             height: 60,
@@ -246,7 +291,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
             description,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               color: isDarkMode ? Colors.grey.shade300 : Colors.grey.shade600,
-              height: 1.5,
+              height: 1.6,
             ),
             textAlign: TextAlign.center,
           ),

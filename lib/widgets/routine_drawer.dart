@@ -19,6 +19,7 @@ class RoutineDrawer extends StatelessWidget {
   final String currentLanguage;
   final Function(String) onLanguageChanged;
   final VoidCallback onManageHousehold;
+  final VoidCallback onWatchTutorial;
 
   const RoutineDrawer({
     super.key,
@@ -36,6 +37,7 @@ class RoutineDrawer extends StatelessWidget {
     required this.currentLanguage,
     required this.onLanguageChanged,
     required this.onManageHousehold,
+    required this.onWatchTutorial,
   });
 
   @override
@@ -215,6 +217,17 @@ class RoutineDrawer extends StatelessWidget {
                   onTap: () {
                     Navigator.pop(context);
                     onManageHousehold();
+                  },
+                ),
+
+                // Watch Tutorial
+                ListTile(
+                  leading: const Icon(Icons.help_outline),
+                  title: Text(l10n.watchTutorial),
+                  trailing: const Icon(Icons.play_circle_outline, size: 20),
+                  onTap: () {
+                    Navigator.pop(context);
+                    onWatchTutorial();
                   },
                 ),
               ],

@@ -29,6 +29,7 @@ import '../services/kiosk_service.dart';
 import 'add_routine_screen.dart';
 import 'edit_routine_screen.dart';
 import 'manage_household_screen.dart';
+import 'onboarding/tutorial_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final Function(Locale) onLocaleChange;
@@ -364,6 +365,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             await PreferencesService.saveHouseholdMembers(_memberNames);
             await _saveMemberAvatars();
           },
+        ),
+      ),
+    );
+  }
+
+  void _openTutorial() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TutorialScreen(
+          onCompleted: () {
+            Navigator.pop(context);
+          },
+          isFromMenu: true, // Don't reset onboarding status
+          canGoBack: false,
         ),
       ),
     );
@@ -890,6 +906,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           currentLanguage: _currentLocale?.languageCode ?? 'en',
           onLanguageChanged: _changeLanguage,
           onManageHousehold: _openManageHouseholdScreen,
+          onWatchTutorial: _openTutorial,
         ),
       ),
     );
