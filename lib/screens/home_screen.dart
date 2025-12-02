@@ -820,14 +820,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         ),
                       ),
                       // Action buttons
-                      _buildActionButton(
-                        icon: Icons.language,
-                        color: Colors.blue,
-                        onPressed: _showLanguageDialog,
-                        tooltip: l10n.language,
-                      ),
-                      const SizedBox(width: 8),
                       if (!_isChildMode) ...[
+                        _buildActionButton(
+                          icon: Icons.language,
+                          color: Colors.blue,
+                          onPressed: _showLanguageDialog,
+                          tooltip: l10n.language,
+                        ),
+                        const SizedBox(width: 8),
                         _buildActionButton(
                           icon: Icons.home,
                           color: Colors.green,
