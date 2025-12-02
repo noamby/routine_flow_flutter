@@ -48,53 +48,26 @@ class _ManageHouseholdScreenState extends State<ManageHouseholdScreen> {
   }
 
   void _addMember() {
-    final l10n = AppLocalizations.of(context)!;
-    final controller = TextEditingController();
-
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.addNewMember),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(
-            hintText: l10n.enterMemberName,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                setState(() {
-                  final newId = 'member_${DateTime.now().millisecondsSinceEpoch}';
-                  // Default colors for new members
-                  const defaultColors = [
-                    Colors.blue, Colors.red, Colors.green, Colors.orange,
-                    Colors.purple, Colors.teal, Colors.pink, Colors.indigo,
-                  ];
-                  final colorIndex = _columns.length % defaultColors.length;
-                  _memberNames.add(controller.text);
-                  _columns.add(ColumnData(
-                    id: newId,
-                    name: "${controller.text}'s Tasks",
-                    color: defaultColors[colorIndex],
-                    tasks: [],
-                    listKey: GlobalKey<AnimatedListState>(),
-                  ));
-                  _memberIcons[newId] = Icons.person;
-                });
-                Navigator.pop(context);
-              }
-            },
-            child: Text(l10n.add),
-          ),
-        ],
+      builder: (context) => _AddMemberDialog(
+        onAdd: (name, icon, imageBytes, color) {
+          setState(() {
+            final newId = 'member_${DateTime.now().millisecondsSinceEpoch}';
+            _memberNames.add(name);
+            _columns.add(ColumnData(
+              id: newId,
+              name: "$name's Tasks",
+              color: color,
+              tasks: [],
+              listKey: GlobalKey<AnimatedListState>(),
+            ));
+            _memberIcons[newId] = icon;
+            if (imageBytes != null) {
+              _memberImageBytes[newId] = imageBytes;
+            }
+          });
+        },
       ),
     );
   }
@@ -491,3 +464,201 @@ class _ManageHouseholdScreenState extends State<ManageHouseholdScreen> {
   }
 }
 
+// Stateful dialog for adding a new member with avatar, name, and color
+class _AddMemberDialog extends StatefulWidget {
+  final Function(String name, IconData icon, Uint8List? imageBytes, Color color) onAdd;
+
+  const _AddMemberDialog({required this.onAdd});
+
+  @override
+  State<_AddMemberDialog> createState() => _AddMemberDialogState();
+}
+
+class _AddMemberDialogState extends State<_AddMemberDialog> {
+  final TextEditingController _nameController = TextEditingController();
+  IconData _selectedIcon = Icons.person;
+  Uint8List? _selectedImageBytes;
+  Color _selectedColor = Colors.blue;
+
+  static const List<Color> _availableColors = [
+    Colors.blue, Colors.red, Colors.green, Colors.orange,
+    Colors.purple, Colors.teal, Colors.pink, Colors.indigo,
+    Colors.amber, Colors.cyan, Colors.lime, Colors.deepOrange,
+  ];
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return AlertDialog(
+      title: Text(l10n.addNewMember),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Avatar picker
+            GestureDetector(
+              onTap: () => _showAvatarPicker(),
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundColor: _selectedColor.withOpacity(0.2),
+                    backgroundImage: _selectedImageBytes != null
+                        ? MemoryImage(_selectedImageBytes!)
+                        : null,
+                    child: _selectedImageBytes == null
+                        ? Icon(
+                            _selectedIcon,
+                            size: 50,
+                            color: _selectedColor,
+                          )
+                        : null,
+                  ),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isDarkMode ? Colors.grey.shade800 : Colors.white,
+                          width: 2,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.edit,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tap to change avatar',
+              style: TextStyle(
+                fontSize: 12,
+                color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Name input
+            TextField(
+              controller: _nameController,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: l10n.enterMemberName,
+                hintText: l10n.enterMemberName,
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.person_outline),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Color picker
+            Text(
+              l10n.pickColor,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: isDarkMode ? Colors.white : Colors.grey.shade800,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: _availableColors.map((color) {
+                final isSelected = _selectedColor == color;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedColor = color;
+                    });
+                  },
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                      border: isSelected
+                          ? Border.all(color: Colors.white, width: 3)
+                          : null,
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: color.withOpacity(0.5),
+                                blurRadius: 8,
+                                spreadRadius: 2,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: isSelected
+                        ? const Icon(Icons.check, color: Colors.white, size: 20)
+                        : null,
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            if (_nameController.text.isNotEmpty) {
+              widget.onAdd(
+                _nameController.text,
+                _selectedIcon,
+                _selectedImageBytes,
+                _selectedColor,
+              );
+              Navigator.pop(context);
+            }
+          },
+          child: Text(l10n.add),
+        ),
+      ],
+    );
+  }
+
+  void _showAvatarPicker() {
+    showDialog(
+      context: context,
+      builder: (context) => AvatarIconPickerDialog(
+        memberColor: _selectedColor,
+        currentIcon: _selectedIcon,
+        hasCustomImage: _selectedImageBytes != null,
+        onIconSelected: (icon) {
+          setState(() {
+            _selectedIcon = icon;
+            _selectedImageBytes = null;
+          });
+        },
+        onImageSelected: (bytes) {
+          setState(() {
+            _selectedImageBytes = bytes;
+          });
+        },
+      ),
+    );
+  }
+}
