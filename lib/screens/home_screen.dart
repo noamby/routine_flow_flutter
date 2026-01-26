@@ -160,6 +160,116 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
+  // ============ PERSISTENCE METHODS ============
+
+  /// Save all routine data to persistent storage
+  Future<void> _saveRoutineData() async {
+    await PreferencesService.saveCustomRoutines(routines);
+    await PreferencesService.saveRoutineIcons(routineIcons);
+    
+    // Save animation types as integers
+    final animationTypes = <String, int>{};
+    routineAnimations.forEach((name, settings) {
+      animationTypes[name] = settings.type.index;
+    });
+    await PreferencesService.saveRoutineAnimations(animationTypes);
+    
+    print('Routine data saved successfully');
+  }
+
+  /// Save current task state for all columns
+  Future<void> _saveCurrentTasks() async {
+    final columnTasks = <String, List<Task>>{};
+    for (var column in columns) {
+      columnTasks[column.id] = column.tasks;
+    }
+    await PreferencesService.saveAllColumnTasks(_currentRoutine, columnTasks);
+    await PreferencesService.saveCurrentRoutine(_currentRoutine);
+    print('Tasks saved for routine: $_currentRoutine');
+  }
+
+  /// Save column colors
+  Future<void> _saveColumnColors() async {
+    final colors = <String, int>{};
+    for (var column in columns) {
+      colors[column.id] = column.color.value;
+    }
+    await PreferencesService.saveColumnColors(colors);
+  }
+
+  /// Load all saved routine data
+  Future<void> _loadRoutineData() async {
+    // Load custom routines
+    final customRoutines = await PreferencesService.getCustomRoutines();
+    if (customRoutines != null && customRoutines.isNotEmpty) {
+      setState(() {
+        routines.addAll(customRoutines);
+      });
+      print('Loaded ${customRoutines.length} custom routines');
+    }
+
+    // Load routine icons
+    final savedIcons = await PreferencesService.getRoutineIcons();
+    if (savedIcons != null) {
+      setState(() {
+        routineIcons.addAll(savedIcons);
+      });
+    }
+
+    // Load routine animations
+    final savedAnimations = await PreferencesService.getRoutineAnimations();
+    if (savedAnimations != null) {
+      setState(() {
+        savedAnimations.forEach((name, typeIndex) {
+          if (typeIndex >= 0 && typeIndex < RoutineAnimation.values.length) {
+            routineAnimations[name] = RoutineAnimationSettings(
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut,
+              type: RoutineAnimation.values[typeIndex],
+            );
+          }
+        });
+      });
+    }
+
+    // Load last used routine
+    final savedRoutine = await PreferencesService.getCurrentRoutine();
+    if (savedRoutine != null && routines.containsKey(savedRoutine)) {
+      _currentRoutine = savedRoutine;
+    }
+
+    // Load column colors
+    final savedColors = await PreferencesService.getColumnColors();
+    if (savedColors != null) {
+      setState(() {
+        for (var column in columns) {
+          if (savedColors.containsKey(column.id)) {
+            column.color = savedColors[column.id]!;
+          }
+        }
+      });
+    }
+
+    // Load saved tasks for current routine
+    await _loadSavedTasks();
+  }
+
+  /// Load saved tasks for the current routine
+  Future<void> _loadSavedTasks() async {
+    final savedTasks = await PreferencesService.getAllColumnTasks(_currentRoutine);
+    if (savedTasks != null && savedTasks.isNotEmpty) {
+      setState(() {
+        for (var column in columns) {
+          if (savedTasks.containsKey(column.id)) {
+            column.tasks.clear();
+            column.tasks.addAll(savedTasks[column.id]!);
+          }
+        }
+      });
+      print('Loaded saved tasks for routine: $_currentRoutine');
+    }
+  }
+
   Future<void> _saveMemberAvatars() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('member_images', jsonEncode(_memberImages));
@@ -190,15 +300,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     routineIcons = RoutineService.getDefaultIcons();
     routineAnimations = RoutineService.getDefaultAnimations();
 
-    // Load the default Morning Routine tasks - add ALL tasks to ALL columns
-    if (routines[_currentRoutine] != null) {
-      final tasks = routines[_currentRoutine]!;
-      for (var column in columns) {
-        for (var task in tasks) {
-          column.tasks.add(Task(text: task.text));
+    // Load saved data asynchronously, then update UI
+    _loadRoutineData().then((_) {
+      // Only load default tasks if no saved tasks were loaded
+      if (columns.every((col) => col.tasks.isEmpty)) {
+        // Load the default Morning Routine tasks - add ALL tasks to ALL columns
+        if (routines[_currentRoutine] != null) {
+          final tasks = routines[_currentRoutine]!;
+          setState(() {
+            for (var column in columns) {
+              for (var task in tasks) {
+                column.tasks.add(Task(text: task.text));
+              }
+            }
+          });
         }
       }
-    }
+    });
   }
 
   void _updateLocalization() {
@@ -293,6 +411,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           setState(() {
             column.color = color;
           });
+          _saveColumnColors(); // Persist color changes
         },
       ),
     );
@@ -300,6 +419,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   void _showIconPicker(String columnId) {
     final column = columns.firstWhere((col) => col.id == columnId);
+    final columnIndex = columns.indexOf(column);
     final hasCustomImage = _memberImages.containsKey(columnId) || _memberImageBytes.containsKey(columnId);
 
     showDialog(
@@ -308,14 +428,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         memberColor: column.color,
         currentIcon: _memberIcons[columnId],
         hasCustomImage: hasCustomImage,
-        onIconSelected: (icon) {
+        onIconSelected: (icon) async {
           setState(() {
             _memberIcons[columnId] = icon;
             // Clear custom image if icon selected
             _memberImages.remove(columnId);
             _memberImageBytes.remove(columnId);
           });
-          _saveMemberAvatars();
+          // Save to both formats for compatibility
+          await _saveMemberAvatars();
+          await PreferencesService.saveMemberIcon('member_$columnIndex', icon);
         },
         onImageSelected: (bytes) async {
           if (kIsWeb) {
@@ -337,7 +459,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               _memberIcons.remove(columnId);
             });
           }
-          _saveMemberAvatars();
+          // Save to both formats for compatibility
+          await _saveMemberAvatars();
+          await PreferencesService.saveMemberImageBytes('member_$columnIndex', bytes);
         },
       ),
     );
@@ -366,9 +490,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               _tabController = TabController(length: columns.length, vsync: this);
             });
 
-            // Save changes to preferences
+            // Save all changes to preferences
             await PreferencesService.saveHouseholdMembers(_memberNames);
             await _saveMemberAvatars();
+            await _saveColumnColors();
+            await _saveCurrentTasks(); // Save tasks for new member configuration
           },
         ),
       ),
@@ -404,6 +530,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               type: animationType,
             );
           });
+          _saveRoutineData(); // Persist animation changes
         },
       ),
     );
@@ -423,6 +550,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             column.tasks.insert(insertIndex, task);
             column.listKey.currentState?.insertItem(insertIndex);
           });
+          _saveCurrentTasks(); // Persist task changes
           Navigator.pop(context);
         },
       ),
@@ -461,6 +589,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     // If the task doesn't need to move, just update the UI
     if (index == newIndex) {
       setState(() {});
+      _saveCurrentTasks(); // Persist task changes even when position doesn't change
       return;
     }
 
@@ -486,6 +615,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             duration: const Duration(milliseconds: 400),
           );
         });
+        _saveCurrentTasks(); // Persist task changes
       }
     });
   }
@@ -564,10 +694,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
       );
     });
+    _saveCurrentTasks(); // Persist task changes
   }
 
   // Routine management methods
-  void _loadRoutine(String name) {
+  void _loadRoutine(String name) async {
+    // Save current tasks before switching
+    await _saveCurrentTasks();
+    
     setState(() {
       _currentRoutine = name;
       _isLoadingRoutine = true;
@@ -586,30 +720,48 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       column.tasks.clear();
     }
 
-    // Add routine tasks with animation - add ALL tasks to ALL columns
-    if (routines[name] != null) {
-      for (var column in columns) {
-        for (int i = 0; i < routines[name]!.length; i++) {
-          final task = routines[name]![i];
-          Future.delayed(Duration(milliseconds: 300 + (i * 150)), () {
-            if (mounted) {
-              setState(() {
-                column.tasks.add(Task(text: task.text));
-              });
-            }
-          });
+    // Try to load saved tasks for this routine first
+    final savedTasks = await PreferencesService.getAllColumnTasks(name);
+    
+    if (savedTasks != null && savedTasks.isNotEmpty) {
+      // Load saved tasks
+      setState(() {
+        for (var column in columns) {
+          if (savedTasks.containsKey(column.id)) {
+            column.tasks.addAll(savedTasks[column.id]!);
+          }
+        }
+        _isLoadingRoutine = false;
+      });
+    } else {
+      // No saved tasks - load default routine tasks with animation
+      if (routines[name] != null) {
+        for (var column in columns) {
+          for (int i = 0; i < routines[name]!.length; i++) {
+            final task = routines[name]![i];
+            Future.delayed(Duration(milliseconds: 300 + (i * 150)), () {
+              if (mounted) {
+                setState(() {
+                  column.tasks.add(Task(text: task.text));
+                });
+              }
+            });
+          }
         }
       }
+
+      // Stop loading state
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (mounted) {
+          setState(() {
+            _isLoadingRoutine = false;
+          });
+        }
+      });
     }
 
-    // Stop loading state
-    Future.delayed(const Duration(milliseconds: 1000), () {
-      if (mounted) {
-        setState(() {
-          _isLoadingRoutine = false;
-        });
-      }
-    });
+    // Save current routine name
+    await PreferencesService.saveCurrentRoutine(name);
   }
 
   void _clearAllTasks() {
@@ -631,6 +783,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               routineIcons[name] = icon;
               routineAnimations[name] = animationSettings;
             });
+            _saveRoutineData(); // Persist the new routine
           },
         ),
       ),
@@ -683,8 +836,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               // Update current routine if it was the one being edited
               if (_currentRoutine == originalName) {
                 _currentRoutine = finalRoutineName;
+                
+                // Reload the tasks into columns to reflect the changes
+                for (var column in columns) {
+                  column.tasks.clear();
+                  for (var task in tasks) {
+                    column.tasks.add(Task(text: task.text, isDone: false, icon: task.icon));
+                  }
+                }
               }
             });
+
+            _saveRoutineData(); // Persist routine changes
+            _saveCurrentTasks(); // Also save the updated tasks
 
             // Show success message
             ScaffoldMessenger.of(context).showSnackBar(
@@ -706,6 +870,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       routineIcons.remove(name);
       routineAnimations.remove(name);
     });
+    _saveRoutineData(); // Persist routine deletion
   }
 
   void _toggleDarkMode(bool isDark) {
@@ -1052,6 +1217,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                         final task = column.tasks.removeAt(oldIndex);
                                         column.tasks.insert(newIndex, task);
                                       });
+                                      _saveCurrentTasks(); // Persist task order changes
                                     },
                                     itemBuilder: (context, index) {
                                       final task = column.tasks[index];

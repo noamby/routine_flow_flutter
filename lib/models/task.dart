@@ -7,6 +7,19 @@ class Task {
 
   Task({required this.text, this.isDone = false, this.icon});
 
+  // Serialization for persistence
+  Map<String, dynamic> toJson() => {
+    'text': text,
+    'isDone': isDone,
+    'icon': icon,
+  };
+
+  factory Task.fromJson(Map<String, dynamic> json) => Task(
+    text: json['text'] as String,
+    isDone: json['isDone'] as bool? ?? false,
+    icon: json['icon'] as String?,
+  );
+
   /// Extracts the first emoji from the text if no explicit icon is set
   String? get displayIcon {
     if (icon != null && icon!.isNotEmpty) return icon;
