@@ -88,7 +88,7 @@ The app adapts to screen size:
 
 Members can have:
 - **Icon avatars**: Material icons stored as `IconData.codePoint`
-- **Custom images**: 
+- **Custom images**:
   - Web: Base64-encoded bytes in SharedPreferences
   - Mobile: File paths in app's documents directory
 
