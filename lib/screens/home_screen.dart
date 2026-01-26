@@ -23,6 +23,7 @@ import '../widgets/home/member_avatar_widget.dart';
 import '../widgets/home/routine_column_header.dart';
 import '../widgets/home/enhanced_task_card.dart';
 import '../widgets/dialogs/avatar_icon_picker_dialog.dart';
+import '../widgets/falling_icons_overlay.dart';
 import '../services/routine_service.dart';
 import '../services/preferences_service.dart';
 import '../services/kiosk_service.dart';
@@ -82,6 +83,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isInitialized = false;
   Locale? _currentLocale;
 
+  // Controller for falling icons animation (Instagram-style celebration)
+  final FallingIconsController _fallingIconsController = FallingIconsController();
+
   @override
   void initState() {
     super.initState();
@@ -93,6 +97,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void dispose() {
     _tabController.dispose();
+    _fallingIconsController.dispose();
     super.dispose();
   }
 
@@ -429,7 +434,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final task = column.tasks[index];
 
     // Toggle the task status
+    final wasNotDone = !task.isDone;
     task.isDone = !task.isDone;
+
+    // Trigger celebration animation when task is completed
+    if (task.isDone && wasNotDone && task.displayIcon != null) {
+      _fallingIconsController.triggerAnimation(task.displayIcon!);
+    }
 
     // Find the new position based on completion status
     final newIndex = _findNewTaskPosition(column.tasks, task);
@@ -799,7 +810,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           );
         }
       },
-      child: Scaffold(
+      child: FallingIconsOverlay(
+        controller: _fallingIconsController,
+        child: Scaffold(
         key: _scaffoldKey,
         body: Container(
           decoration: BoxDecoration(
@@ -904,6 +917,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           onToggleDarkMode: () => _toggleDarkMode(!isDarkMode),
         ),
       ),
+      ), // FallingIconsOverlay
     );
   }
 

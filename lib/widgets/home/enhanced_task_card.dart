@@ -67,10 +67,30 @@ class EnhancedTaskCard extends StatelessWidget {
                           : null,
                     ),
                     const SizedBox(width: 14),
-                    // Task text
+                    // Task icon (displayed next to task text)
+                    if (task.displayIcon != null) ...[
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: isDarkMode 
+                              ? Colors.grey.shade600.withValues(alpha: 0.5)
+                              : Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: Text(
+                            task.displayIcon!,
+                            style: const TextStyle(fontSize: 24),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    // Task text (use displayText to avoid emoji duplication)
                     Expanded(
                       child: Text(
-                        task.text,
+                        task.displayIcon != null ? task.displayText : task.text,
                         style: TextStyle(
                           decoration: task.isDone ? TextDecoration.lineThrough : null,
                           color: task.isDone
