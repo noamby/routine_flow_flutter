@@ -442,6 +442,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _fallingIconsController.triggerAnimation(task.displayIcon!);
     }
 
+    // Check if all tasks are now completed - trigger trophy celebration!
+    if (task.isDone && wasNotDone && column.tasks.isNotEmpty) {
+      final allDone = column.tasks.every((t) => t.isDone);
+      if (allDone) {
+        // Delay the trophy animation so it comes after the task animation
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          if (mounted) {
+            _fallingIconsController.triggerZoomCelebration('🏆');
+          }
+        });
+      }
+    }
+
     // Find the new position based on completion status
     final newIndex = _findNewTaskPosition(column.tasks, task);
 

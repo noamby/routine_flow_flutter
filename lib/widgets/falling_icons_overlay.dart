@@ -1,17 +1,31 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
-/// Controller for triggering falling icon animations from anywhere in the app
+/// Types of celebration animations
+enum CelebrationAnimationType { falling, zoom }
+
+/// Controller for triggering celebration animations from anywhere in the app
 class FallingIconsController extends ChangeNotifier {
   String? _currentIcon;
   int _triggerCount = 0;
+  CelebrationAnimationType _animationType = CelebrationAnimationType.falling;
 
   String? get currentIcon => _currentIcon;
   int get triggerCount => _triggerCount;
+  CelebrationAnimationType get animationType => _animationType;
 
   /// Triggers the falling animation with the specified emoji/icon
   void triggerAnimation(String icon) {
     _currentIcon = icon;
+    _animationType = CelebrationAnimationType.falling;
+    _triggerCount++;
+    notifyListeners();
+  }
+
+  /// Triggers a zoom celebration (single emoji that grows and shrinks)
+  void triggerZoomCelebration(String icon) {
+    _currentIcon = icon;
+    _animationType = CelebrationAnimationType.zoom;
     _triggerCount++;
     notifyListeners();
   }
@@ -42,6 +56,10 @@ class _FallingIconsOverlayState extends State<FallingIconsOverlay>
   final List<_FallingIconData> _fallingIcons = [];
   final Random _random = Random();
   int _lastTriggerCount = 0;
+  
+  // Zoom celebration state
+  AnimationController? _zoomController;
+  String? _zoomIcon;
 
   @override
   void initState() {
@@ -55,6 +73,7 @@ class _FallingIconsOverlayState extends State<FallingIconsOverlay>
     for (final data in _fallingIcons) {
       data.controller.dispose();
     }
+    _zoomController?.dispose();
     super.dispose();
   }
 
@@ -64,9 +83,37 @@ class _FallingIconsOverlayState extends State<FallingIconsOverlay>
       _lastTriggerCount = widget.controller.triggerCount;
       final icon = widget.controller.currentIcon;
       if (icon != null) {
-        _spawnFallingIcons(icon);
+        if (widget.controller.animationType == CelebrationAnimationType.zoom) {
+          _triggerZoomCelebration(icon);
+        } else {
+          _spawnFallingIcons(icon);
+        }
       }
     }
+  }
+
+  void _triggerZoomCelebration(String icon) {
+    // Dispose previous controller if exists
+    _zoomController?.dispose();
+    
+    _zoomController = AnimationController(
+      duration: const Duration(milliseconds: 2500),
+      vsync: this,
+    );
+
+    setState(() {
+      _zoomIcon = icon;
+    });
+
+    _zoomController!.forward().then((_) {
+      if (mounted) {
+        _zoomController?.dispose();
+        _zoomController = null;
+        setState(() {
+          _zoomIcon = null;
+        });
+      }
+    });
   }
 
   void _spawnFallingIcons(String icon) {
@@ -113,7 +160,64 @@ class _FallingIconsOverlayState extends State<FallingIconsOverlay>
         widget.child,
         // Falling icons overlay
         ..._fallingIcons.map((data) => _buildFallingIcon(data)),
+        // Zoom celebration overlay
+        if (_zoomIcon != null && _zoomController != null)
+          _buildZoomCelebration(),
       ],
+    );
+  }
+
+  Widget _buildZoomCelebration() {
+    return AnimatedBuilder(
+      animation: _zoomController!,
+      builder: (context, child) {
+        final progress = _zoomController!.value;
+        
+        // Scale animation: grows from 0 to max size, holds, then shrinks back
+        double scale;
+        double opacity;
+        
+        if (progress < 0.2) {
+          // Grow phase (0 to 0.2) - fast growth with bounce
+          scale = Curves.elasticOut.transform(progress / 0.2);
+          opacity = (progress / 0.2).clamp(0.0, 1.0);
+        } else if (progress < 0.8) {
+          // Hold phase (0.2 to 0.8) - stay at full size with gentle pulse
+          final holdProgress = (progress - 0.2) / 0.6;
+          scale = 1.0 + 0.08 * sin(holdProgress * pi * 3);
+          opacity = 1.0;
+        } else {
+          // Shrink phase (0.8 to 1.0) - shrink and fade
+          final shrinkProgress = (progress - 0.8) / 0.2;
+          scale = 1.0 - Curves.easeIn.transform(shrinkProgress);
+          opacity = 1.0 - shrinkProgress;
+        }
+
+        // Max font size relative to screen
+        final screenSize = MediaQuery.of(context).size;
+        final maxSize = screenSize.width * 0.5; // 50% of screen width
+        final fontSize = maxSize * scale;
+
+        return Positioned.fill(
+          child: IgnorePointer(
+            child: Container(
+              color: Colors.black.withValues(alpha: 0.1 * opacity),
+              child: Center(
+                child: Opacity(
+                  opacity: opacity.clamp(0.0, 1.0),
+                  child: Text(
+                    _zoomIcon!,
+                    style: TextStyle(
+                      fontSize: fontSize.clamp(0.0, maxSize),
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
