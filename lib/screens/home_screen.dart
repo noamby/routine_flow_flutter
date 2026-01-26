@@ -698,10 +698,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   // Routine management methods
+  // When user selects a routine from the drawer, it's a complete fresh start
+  // Load the original routine template, all tasks not done
   void _loadRoutine(String name) async {
-    // Save current tasks before switching
-    await _saveCurrentTasks();
-    
     setState(() {
       _currentRoutine = name;
       _isLoadingRoutine = true;
@@ -720,45 +719,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       column.tasks.clear();
     }
 
-    // Try to load saved tasks for this routine first
-    final savedTasks = await PreferencesService.getAllColumnTasks(name);
-    
-    if (savedTasks != null && savedTasks.isNotEmpty) {
-      // Load saved tasks
-      setState(() {
-        for (var column in columns) {
-          if (savedTasks.containsKey(column.id)) {
-            column.tasks.addAll(savedTasks[column.id]!);
-          }
-        }
-        _isLoadingRoutine = false;
-      });
-    } else {
-      // No saved tasks - load default routine tasks with animation
-      if (routines[name] != null) {
-        for (var column in columns) {
-          for (int i = 0; i < routines[name]!.length; i++) {
-            final task = routines[name]![i];
-            Future.delayed(Duration(milliseconds: 300 + (i * 150)), () {
-              if (mounted) {
-                setState(() {
-                  column.tasks.add(Task(text: task.text));
-                });
-              }
-            });
-          }
-        }
-      }
-
-      // Stop loading state
-      Future.delayed(const Duration(milliseconds: 1000), () {
-        if (mounted) {
-          setState(() {
-            _isLoadingRoutine = false;
+    // Load from routine template (fresh start with original order)
+    if (routines[name] != null) {
+      for (var column in columns) {
+        for (int i = 0; i < routines[name]!.length; i++) {
+          final task = routines[name]![i];
+          Future.delayed(Duration(milliseconds: 300 + (i * 150)), () {
+            if (mounted) {
+              setState(() {
+                column.tasks.add(Task(text: task.text, isDone: false, icon: task.icon));
+              });
+            }
           });
         }
-      });
+      }
     }
+
+    // Stop loading state and save the fresh state
+    Future.delayed(Duration(milliseconds: 300 + ((routines[name]?.length ?? 0) * 150) + 200), () {
+      if (mounted) {
+        setState(() {
+          _isLoadingRoutine = false;
+        });
+        _saveCurrentTasks(); // Save the fresh start state
+      }
+    });
 
     // Save current routine name
     await PreferencesService.saveCurrentRoutine(name);
