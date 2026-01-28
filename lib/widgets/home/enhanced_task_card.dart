@@ -74,14 +74,16 @@ class EnhancedTaskCard extends StatelessWidget {
                         height: 40,
                         decoration: BoxDecoration(
                           color: isDarkMode 
-                              ? Colors.grey.shade600.withValues(alpha: 0.5)
+                              ? Colors.grey.shade600.withOpacity(0.5)
                               : Colors.orange.shade50,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Center(
-                          child: Text(
-                            task.displayIcon!,
-                            style: const TextStyle(fontSize: 24),
+                          child: RepaintBoundary(
+                            child: Text(
+                              task.displayIcon!,
+                              style: const TextStyle(fontSize: 24),
+                            ),
                           ),
                         ),
                       ),

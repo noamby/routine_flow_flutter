@@ -4,16 +4,25 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class AddTaskDialog extends StatefulWidget {
   final Function(String) onAdd;
+  final String? initialText; // Optional initial text for editing mode
 
-  const AddTaskDialog({super.key, required this.onAdd});
+  const AddTaskDialog({super.key, required this.onAdd, this.initialText});
 
   @override
   State<AddTaskDialog> createState() => _AddTaskDialogState();
 }
 
 class _AddTaskDialogState extends State<AddTaskDialog> {
-  final _textController = TextEditingController();
+  late final TextEditingController _textController;
   bool _showEmojiPicker = false;
+
+  bool get isEditMode => widget.initialText != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _textController = TextEditingController(text: widget.initialText ?? '');
+  }
 
   final List<String> _quickEmojis = [
     // Morning Routine
@@ -87,7 +96,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     final l10n = AppLocalizations.of(context)!;
     
     return AlertDialog(
-      title: Text(l10n.addNewTask),
+      title: Text(isEditMode ? l10n.edit : l10n.addNewTask),
       content: SizedBox(
         width: double.maxFinite,
         child: Column(
@@ -174,7 +183,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
               widget.onAdd(_textController.text);
             }
           },
-          child: Text(l10n.add),
+          child: Text(isEditMode ? l10n.save : l10n.add),
         ),
       ],
     );

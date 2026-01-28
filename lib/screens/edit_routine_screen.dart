@@ -178,42 +178,23 @@ class _EditRoutineScreenState extends State<EditRoutineScreen> {
 
   void _editTask(int index) {
     final currentTask = _tasks[index];
-    final controller = TextEditingController(text: currentTask.text);
     
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.edit),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            labelText: AppLocalizations.of(context)!.enterTaskText,
-            border: const OutlineInputBorder(),
-          ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context)!.cancel),
-          ),
-          TextButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                setState(() {
-                  _tasks[index] = Task(text: controller.text, isDone: currentTask.isDone);
-                });
-                Navigator.pop(context);
-              }
-            },
-            child: Text(AppLocalizations.of(context)!.save),
-          ),
-        ],
+      builder: (context) => AddTaskDialog(
+        initialText: currentTask.text,
+        onAdd: (text) {
+          setState(() {
+            _tasks[index] = Task(text: text, isDone: currentTask.isDone);
+          });
+          Navigator.pop(context);
+        },
       ),
     );
   }
 
   void _removeTask(int index) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     setState(() {
       final task = _tasks.removeAt(index);
       _listKey.currentState?.removeItem(
@@ -233,18 +214,35 @@ class _EditRoutineScreenState extends State<EditRoutineScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
                   children: [
-                    Checkbox(
-                      value: task.isDone,
-                      onChanged: null,
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isDarkMode 
+                          ? Colors.orange.shade700 
+                          : Colors.orange.shade100,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${index + 1}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: isDarkMode 
+                              ? Colors.white 
+                              : Colors.orange.shade700,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         task.text,
                         style: TextStyle(
-                          decoration: task.isDone ? TextDecoration.lineThrough : null,
-                          color: task.isDone ? Colors.grey : null,
-                          fontSize: 18,
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                          fontSize: 16,
                         ),
                       ),
                     ),
@@ -487,49 +485,36 @@ class _EditRoutineScreenState extends State<EditRoutineScreen> {
                                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                       child: Row(
                                         children: [
-                                          // Custom circular checkbox
+                                          // Task number indicator
                                           Container(
-                                            width: 24,
-                                            height: 24,
+                                            width: 28,
+                                            height: 28,
                                             decoration: BoxDecoration(
                                               shape: BoxShape.circle,
-                                              border: Border.all(
-                                                color: _tasks[index].isDone 
-                                                  ? Colors.green 
-                                                  : Colors.grey.shade400,
-                                                width: 2,
-                                              ),
-                                              color: _tasks[index].isDone 
-                                                ? Colors.green 
-                                                : Colors.transparent,
+                                              color: isDarkMode 
+                                                ? Colors.orange.shade700 
+                                                : Colors.orange.shade100,
                                             ),
-                                            child: _tasks[index].isDone
-                                              ? const Icon(
-                                                  Icons.check,
-                                                  size: 16,
-                                                  color: Colors.white,
-                                                )
-                                              : null,
+                                            child: Center(
+                                              child: Text(
+                                                '${index + 1}',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: isDarkMode 
+                                                    ? Colors.white 
+                                                    : Colors.orange.shade700,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ),
                                           ),
                                           const SizedBox(width: 12),
                                           Expanded(
-                                            child: GestureDetector(
-                                              onTap: () {
-                                                setState(() {
-                                                  _tasks[index].isDone = !_tasks[index].isDone;
-                                                });
-                                              },
-                                              child: Text(
-                                                _tasks[index].text,
-                                                style: TextStyle(
-                                                  decoration: _tasks[index].isDone 
-                                                    ? TextDecoration.lineThrough 
-                                                    : null,
-                                                  color: _tasks[index].isDone 
-                                                    ? Colors.grey 
-                                                    : (isDarkMode ? Colors.white : Colors.black87),
-                                                  fontSize: 16,
-                                                ),
+                                            child: Text(
+                                              _tasks[index].text,
+                                              style: TextStyle(
+                                                color: isDarkMode ? Colors.white : Colors.black87,
+                                                fontSize: 16,
                                               ),
                                             ),
                                           ),

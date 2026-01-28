@@ -158,11 +158,19 @@ class _FallingIconsOverlayState extends State<FallingIconsOverlay>
       fit: StackFit.expand,
       children: [
         widget.child,
-        // Falling icons overlay
-        ..._fallingIcons.map((data) => _buildFallingIcon(data)),
-        // Zoom celebration overlay
+        // Falling icons overlay - wrapped in RepaintBoundary to isolate rendering
+        if (_fallingIcons.isNotEmpty)
+          RepaintBoundary(
+            child: Stack(
+              fit: StackFit.expand,
+              children: _fallingIcons.map((data) => _buildFallingIcon(data)).toList(),
+            ),
+          ),
+        // Zoom celebration overlay - wrapped in RepaintBoundary for rendering isolation
         if (_zoomIcon != null && _zoomController != null)
-          _buildZoomCelebration(),
+          RepaintBoundary(
+            child: _buildZoomCelebration(),
+          ),
       ],
     );
   }
@@ -178,13 +186,13 @@ class _FallingIconsOverlayState extends State<FallingIconsOverlay>
         double opacity;
         
         if (progress < 0.2) {
-          // Grow phase (0 to 0.2) - fast growth with bounce
-          scale = Curves.elasticOut.transform(progress / 0.2);
+          // Grow phase (0 to 0.2) - use easeOutBack for a subtle bounce without extreme overshoot
+          scale = Curves.easeOutBack.transform(progress / 0.2);
           opacity = (progress / 0.2).clamp(0.0, 1.0);
         } else if (progress < 0.8) {
           // Hold phase (0.2 to 0.8) - stay at full size with gentle pulse
           final holdProgress = (progress - 0.2) / 0.6;
-          scale = 1.0 + 0.08 * sin(holdProgress * pi * 3);
+          scale = 1.0 + 0.05 * sin(holdProgress * pi * 3); // Reduced pulse amplitude
           opacity = 1.0;
         } else {
           // Shrink phase (0.8 to 1.0) - shrink and fade
@@ -193,22 +201,26 @@ class _FallingIconsOverlayState extends State<FallingIconsOverlay>
           opacity = 1.0 - shrinkProgress;
         }
 
-        // Max font size relative to screen
+        // Clamp scale to prevent rendering issues on some devices
+        scale = scale.clamp(0.0, 1.15);
+
+        // Max font size relative to screen - limit to 200px max for tablet compatibility
         final screenSize = MediaQuery.of(context).size;
-        final maxSize = screenSize.width * 0.5; // 50% of screen width
-        final fontSize = maxSize * scale;
+        final baseSize = screenSize.width * 0.35; // 35% of screen width (reduced from 50%)
+        final maxFontSize = baseSize.clamp(80.0, 200.0); // Cap at 200px for rendering safety
+        final fontSize = (maxFontSize * scale).clamp(0.0, 200.0);
 
         return Positioned.fill(
           child: IgnorePointer(
             child: Container(
-              color: Colors.black.withValues(alpha: 0.1 * opacity),
+              color: Colors.black.withOpacity((0.1 * opacity).clamp(0.0, 1.0)),
               child: Center(
                 child: Opacity(
                   opacity: opacity.clamp(0.0, 1.0),
                   child: Text(
                     _zoomIcon!,
                     style: TextStyle(
-                      fontSize: fontSize.clamp(0.0, maxSize),
+                      fontSize: fontSize,
                       decoration: TextDecoration.none,
                     ),
                   ),
@@ -238,20 +250,23 @@ class _FallingIconsOverlayState extends State<FallingIconsOverlay>
         final angle = data.rotation * progress * pi;
         
         // Fade out in last 20%
-        final opacity = progress > 0.8 ? (1.0 - progress) / 0.2 : 1.0;
+        final opacity = (progress > 0.8 ? (1.0 - progress) / 0.2 : 1.0).clamp(0.0, 1.0);
+
+        // Clamp size to reasonable bounds for rendering safety
+        final safeSize = data.size.clamp(16.0, 60.0);
 
         return Positioned(
-          left: x.clamp(0, screenSize.width - data.size),
+          left: x.clamp(0.0, screenSize.width - safeSize),
           top: y,
           child: IgnorePointer(
             child: Transform.rotate(
               angle: angle,
               child: Opacity(
-                opacity: opacity.clamp(0.0, 1.0),
+                opacity: opacity,
                 child: Text(
                   data.icon,
                   style: TextStyle(
-                    fontSize: data.size,
+                    fontSize: safeSize,
                     decoration: TextDecoration.none,
                   ),
                 ),
