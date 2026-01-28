@@ -3,7 +3,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -27,6 +27,7 @@ import '../widgets/falling_icons_overlay.dart';
 import '../services/routine_service.dart';
 import '../services/preferences_service.dart';
 import '../services/kiosk_service.dart';
+import '../services/audio_service.dart';
 import 'add_routine_screen.dart';
 import 'edit_routine_screen.dart';
 import 'manage_household_screen.dart';
@@ -570,10 +571,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _fallingIconsController.triggerAnimation(task.displayIcon!);
     }
 
-    // Check if all tasks are now completed - trigger trophy celebration!
+    // Check if all tasks in THIS column are now completed
     if (task.isDone && wasNotDone && column.tasks.isNotEmpty) {
-      final allDone = column.tasks.every((t) => t.isDone);
-      if (allDone) {
+      final columnAllDone = column.tasks.every((t) => t.isDone);
+      if (columnAllDone) {
+        // Play a random celebration sound
+        debugPrint('🎉 Column complete! Playing celebration sound...');
+        AudioService().playCompletionSound();
+        
         // Delay the trophy animation so it comes after the task animation
         Future.delayed(const Duration(milliseconds: 1500), () {
           if (mounted) {
