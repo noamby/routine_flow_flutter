@@ -1,5 +1,5 @@
 {
-  "appTitle": "זרימת שגרה",
+  "appTitle": "גיבורי השגרה",
   "routines": "שגרות",
   "morningRoutine": "שגרת בוקר",
   "eveningRoutine": "שגרת ערב",
@@ -72,7 +72,7 @@
   "next": "הבא",
   "previous": "הקודם",
   "getStarted": "התחל",
-  "welcomeToRoutineFlow": "ברוכים הבאים לזרימת שגרה",
+  "welcomeToRoutineFlow": "ברוכים הבאים לגיבורי השגרה",
   "welcomeDescription": "ארגן את השגרות היומיות של המשפחה שלך בקלות. צור רשימות משימות מותאמות אישית לכל בן משפחה.",
   "morningEveningRoutines": "שגרות בוקר וערב",
   "morningEveningDescription": "עבור בין שגרות בוקר וערב מתפריט הצד. האפליקציה עוברת אוטומטית למצב כהה בערב!",

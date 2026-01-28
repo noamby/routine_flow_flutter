@@ -1,5 +1,5 @@
 {
-  "appTitle": "Routine Flow",
+  "appTitle": "Routine Heroes",
   "routines": "Routines",
   "morningRoutine": "Morning Routine",
   "eveningRoutine": "Evening Routine",
@@ -72,7 +72,7 @@
   "next": "Next",
   "previous": "Previous",
   "getStarted": "Get Started",
-  "welcomeToRoutineFlow": "Welcome to Routine Flow",
+  "welcomeToRoutineFlow": "Welcome to Routine Heroes",
   "welcomeDescription": "Organize your family's daily routines with ease. Create personalized task lists for each family member.",
   "morningEveningRoutines": "Morning & Evening Routines",
   "morningEveningDescription": "Switch between Morning and Evening routines from the side menu. The app automatically adjusts to dark mode for evening!",
