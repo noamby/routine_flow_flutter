@@ -70,19 +70,19 @@ class EnhancedTaskCard extends StatelessWidget {
                     // Task icon (displayed next to task text)
                     if (task.displayIcon != null) ...[
                       Container(
-                        width: 40,
-                        height: 40,
+                        width: 48,
+                        height: 48,
                         decoration: BoxDecoration(
                           color: isDarkMode 
                               ? Colors.grey.shade600.withOpacity(0.5)
                               : Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: Center(
                           child: RepaintBoundary(
                             child: Text(
                               task.displayIcon!,
-                              style: const TextStyle(fontSize: 24),
+                              style: const TextStyle(fontSize: 28),
                             ),
                           ),
                         ),
@@ -98,7 +98,7 @@ class EnhancedTaskCard extends StatelessWidget {
                           color: task.isDone
                               ? (isDarkMode ? Colors.grey.shade400 : Colors.grey.shade500)
                               : (isDarkMode ? Colors.white : Colors.grey.shade800),
-                          fontSize: 16,
+                          fontSize: 20,
                           fontWeight: FontWeight.w500,
                         ),
                         maxLines: 2,

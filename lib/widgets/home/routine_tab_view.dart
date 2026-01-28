@@ -36,12 +36,18 @@ class RoutineTabView extends StatelessWidget {
                 children: [
                   // Avatar in tab
                   SizedBox(
-                    width: 24,
-                    height: 24,
+                    width: 32,
+                    height: 32,
                     child: buildAvatar(column, isDarkMode),
                   ),
-                  const SizedBox(width: 8),
-                  Text(memberName),
+                  const SizedBox(width: 10),
+                  Text(
+                    memberName,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             );

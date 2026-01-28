@@ -6,17 +6,26 @@ enum CelebrationAnimationType { falling, zoom }
 
 /// Controller for triggering celebration animations from anywhere in the app
 class FallingIconsController extends ChangeNotifier {
-  String? _currentIcon;
+  List<String> _currentIcons = [];
   int _triggerCount = 0;
   CelebrationAnimationType _animationType = CelebrationAnimationType.falling;
 
-  String? get currentIcon => _currentIcon;
+  List<String> get currentIcons => _currentIcons;
   int get triggerCount => _triggerCount;
   CelebrationAnimationType get animationType => _animationType;
 
-  /// Triggers the falling animation with the specified emoji/icon
+  /// Triggers the falling animation with the specified emoji/icon(s)
   void triggerAnimation(String icon) {
-    _currentIcon = icon;
+    _currentIcons = [icon];
+    _animationType = CelebrationAnimationType.falling;
+    _triggerCount++;
+    notifyListeners();
+  }
+
+  /// Triggers the falling animation with multiple emojis/icons
+  void triggerAnimationWithMultipleIcons(List<String> icons) {
+    if (icons.isEmpty) return;
+    _currentIcons = icons;
     _animationType = CelebrationAnimationType.falling;
     _triggerCount++;
     notifyListeners();
@@ -24,7 +33,7 @@ class FallingIconsController extends ChangeNotifier {
 
   /// Triggers a zoom celebration (single emoji that grows and shrinks)
   void triggerZoomCelebration(String icon) {
-    _currentIcon = icon;
+    _currentIcons = [icon];
     _animationType = CelebrationAnimationType.zoom;
     _triggerCount++;
     notifyListeners();
@@ -43,7 +52,7 @@ class FallingIconsOverlay extends StatefulWidget {
     super.key,
     required this.controller,
     required this.child,
-    this.iconCount = 20,
+    this.iconCount = 80,
     this.animationDuration = const Duration(milliseconds: 2000),
   });
 
@@ -81,12 +90,12 @@ class _FallingIconsOverlayState extends State<FallingIconsOverlay>
     // Only trigger if this is a new animation request
     if (widget.controller.triggerCount != _lastTriggerCount) {
       _lastTriggerCount = widget.controller.triggerCount;
-      final icon = widget.controller.currentIcon;
-      if (icon != null) {
+      final icons = widget.controller.currentIcons;
+      if (icons.isNotEmpty) {
         if (widget.controller.animationType == CelebrationAnimationType.zoom) {
-          _triggerZoomCelebration(icon);
+          _triggerZoomCelebration(icons.first);
         } else {
-          _spawnFallingIcons(icon);
+          _spawnFallingIcons(icons);
         }
       }
     }
@@ -116,10 +125,10 @@ class _FallingIconsOverlayState extends State<FallingIconsOverlay>
     });
   }
 
-  void _spawnFallingIcons(String icon) {
+  void _spawnFallingIcons(List<String> icons) {
     for (int i = 0; i < widget.iconCount; i++) {
-      // Stagger the spawn times
-      Future.delayed(Duration(milliseconds: _random.nextInt(400)), () {
+      // Stagger the spawn times (0-500ms) for dense icon coverage
+      Future.delayed(Duration(milliseconds: _random.nextInt(500)), () {
         if (!mounted) return;
 
         final controller = AnimationController(
@@ -127,12 +136,15 @@ class _FallingIconsOverlayState extends State<FallingIconsOverlay>
           vsync: this,
         );
 
+        // Pick a random icon from the list
+        final icon = icons[_random.nextInt(icons.length)];
+
         final data = _FallingIconData(
           icon: icon,
           controller: controller,
           startX: _random.nextDouble(),
           drift: (_random.nextDouble() - 0.5) * 0.2,
-          size: 32.0 + _random.nextDouble() * 28.0,
+          size: 48.0 + _random.nextDouble() * 40.0, // Bigger icons: 48-88px
           rotation: (_random.nextDouble() - 0.5) * 4.0,
         );
 
@@ -253,7 +265,7 @@ class _FallingIconsOverlayState extends State<FallingIconsOverlay>
         final opacity = (progress > 0.8 ? (1.0 - progress) / 0.2 : 1.0).clamp(0.0, 1.0);
 
         // Clamp size to reasonable bounds for rendering safety
-        final safeSize = data.size.clamp(16.0, 60.0);
+        final safeSize = data.size.clamp(32.0, 90.0);
 
         return Positioned(
           left: x.clamp(0.0, screenSize.width - safeSize),

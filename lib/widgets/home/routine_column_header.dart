@@ -91,8 +91,9 @@ class RoutineColumnHeader extends StatelessWidget {
           Expanded(
             child: Text(
               column.name,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
+                fontSize: 22,
                 color: isDarkMode ? Colors.white : Colors.grey.shade800,
               ),
             ),

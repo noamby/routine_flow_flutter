@@ -566,9 +566,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final wasNotDone = !task.isDone;
     task.isDone = !task.isDone;
 
-    // Trigger celebration animation when task is completed
-    if (task.isDone && wasNotDone && task.displayIcon != null) {
-      _fallingIconsController.triggerAnimation(task.displayIcon!);
+    // Trigger celebration animation when task is completed (with all emojis)
+    if (task.isDone && wasNotDone) {
+      final emojis = task.allEmojis;
+      if (emojis.isNotEmpty) {
+        _fallingIconsController.triggerAnimationWithMultipleIcons(emojis);
+      }
     }
 
     // Check if all tasks in THIS column are now completed
